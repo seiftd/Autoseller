@@ -1,0 +1,115 @@
+import React, { useState, useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Layout } from './components/Layout';
+import { Landing } from './pages/Landing';
+import { Login } from './pages/Login';
+import { Dashboard } from './pages/Dashboard';
+import { Products } from './pages/Products';
+import { Orders } from './pages/Orders';
+import { Inbox } from './pages/Inbox';
+import { ConnectedAccounts } from './pages/ConnectedAccounts';
+import { Settings } from './pages/Settings';
+import { authService } from './services/authService';
+import { Language } from './types';
+
+// Protected Route Wrapper with Layout
+const ProtectedRoute: React.FC<{ 
+  children: React.ReactNode; 
+  lang: Language; 
+  setLang: (l: Language) => void;
+  onLogout: () => void;
+}> = ({ children, lang, setLang, onLogout }) => {
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return <Layout lang={lang} setLang={setLang} onLogout={onLogout}>{children}</Layout>;
+};
+
+const AppContent: React.FC = () => {
+  const [lang, setLang] = useState<Language>('en');
+  const [isAuthenticated, setIsAuthenticated] = useState(authService.isAuthenticated());
+
+  useEffect(() => {
+    // Handle RTL
+    if (lang === 'ar') {
+      document.documentElement.dir = 'rtl';
+    } else {
+      document.documentElement.dir = 'ltr';
+    }
+  }, [lang]);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setIsAuthenticated(false);
+  };
+
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route 
+        path="/login" 
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" /> : <Login lang={lang} setLang={setLang} onLogin={handleLogin} />
+        } 
+      />
+      
+      {/* Protected Routes */}
+      <Route path="/dashboard" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <Dashboard lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/products" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <Products lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/orders" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <Orders lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/inbox" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <Inbox lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/connected-accounts" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <ConnectedAccounts lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/delivery-settings" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <Settings lang={lang} />
+        </ProtectedRoute>
+      } />
+      
+      {/* Placeholder Routes */}
+      <Route path="/analytics" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <div className="text-white text-center py-20">Analytics Module (Coming Soon)</div>
+        </ProtectedRoute>
+      } />
+      <Route path="/billing" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <div className="text-white text-center py-20">Billing Module (Coming Soon)</div>
+        </ProtectedRoute>
+      } />
+    </Routes>
+  );
+};
+
+const App: React.FC = () => {
+  return (
+    <HashRouter>
+      <AppContent />
+    </HashRouter>
+  );
+};
+
+export default App;

@@ -1,92 +1,431 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bot, ShoppingBag, Zap, TrendingUp } from 'lucide-react';
+import { 
+  Bot, ShoppingBag, Zap, TrendingUp, Globe, Check, 
+  ArrowRight, MessageCircle, BarChart3, Shield, Truck, 
+  Layers, ChevronRight, Play
+} from 'lucide-react';
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { Language } from '../types';
+import { TEXTS } from '../constants';
 
 export const Landing: React.FC = () => {
+  const [lang, setLang] = useState<Language>('en');
+
+  // Local texts for Landing specific content not in global constants
+  const content = {
+    navFeatures: { en: "Features", fr: "Fonctionnalités", ar: "المميزات" },
+    navPricing: { en: "Pricing", fr: "Tarifs", ar: "الأسعار" },
+    navLogin: { en: "Login", fr: "Connexion", ar: "دخول" },
+    heroTitle: { 
+      en: "Sell Smarter.", 
+      fr: "Vendez Plus Intelligemment.", 
+      ar: "بع بذكاء." 
+    },
+    heroHighlight: {
+      en: "Automate Everything.",
+      fr: "Automatisez Tout.",
+      ar: "أتمت كل شيء."
+    },
+    heroSub: {
+      en: "Connect your business accounts. Publish products. Auto-reply to customers. Manage orders.",
+      fr: "Connectez vos comptes pro. Publiez vos produits. Répondez automatiquement. Gérez vos commandes.",
+      ar: "ربط حساباتك التجارية. نشر المنتجات. الرد التلقائي على العملاء. إدارة الطلبات."
+    },
+    ctaConnect: { en: "Connect Your Business", fr: "Connecter mon Business", ar: "ابدأ الآن" },
+    ctaDemo: { en: "See How It Works", fr: "Voir la Démo", ar: "شاهد كيف يعمل" },
+    stepsTitle: { en: "How It Works", fr: "Comment ça marche", ar: "كيف يعمل" },
+    pricingTitle: { en: "Simple Pricing", fr: "Tarifs Simples", ar: "أسعار بسيطة" },
+    pricingSub: { en: "Start free, upgrade as you grow.", fr: "Commencez gratuit, évoluez selon vos besoins.", ar: "ابدأ مجاناً، ورقي مع نموك." },
+    footerRights: { en: "All rights reserved.", fr: "Tous droits réservés.", ar: "جميع الحقوق محفوظة." }
+  };
+
+  const isRTL = lang === 'ar';
+
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col relative overflow-hidden">
-      {/* Background Gradients */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-600/20 rounded-full blur-[120px]" />
+    <div className={`min-h-screen bg-[#020617] text-slate-100 flex flex-col relative overflow-x-hidden selection:bg-blue-500/30 ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
+      
+      {/* Dynamic Background Effects */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        <div className="absolute top-[40%] left-[50%] transform -translate-x-1/2 w-[60%] h-[40%] bg-cyan-500/5 rounded-full blur-[100px]" />
       </div>
 
-      <header className="relative z-10 max-w-7xl mx-auto w-full px-6 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-2 font-bold text-2xl">
-          <Bot className="text-blue-500" />
-          <span>AutoSeller</span>
+      {/* Navbar */}
+      <nav className="relative z-50 border-b border-white/5 bg-[#020617]/80 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-2xl tracking-tight">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-900/20">
+              <Bot className="text-white w-6 h-6" />
+            </div>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              ReplyGenie
+            </span>
+          </div>
+
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-400">
+            <a href="#features" className="hover:text-white transition-colors">{content.navFeatures[lang]}</a>
+            <a href="#pricing" className="hover:text-white transition-colors">{content.navPricing[lang]}</a>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <LanguageSwitcher current={lang} onChange={setLang} />
+            <Link 
+              to="/login"
+              className="hidden md:flex px-5 py-2.5 rounded-full border border-slate-700 hover:border-slate-500 hover:bg-slate-800 transition-all text-sm font-medium"
+            >
+              {content.navLogin[lang]}
+            </Link>
+            <Link 
+              to="/login"
+              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-semibold shadow-lg shadow-blue-900/20 transition-all hover:scale-105 text-sm"
+            >
+              {content.ctaConnect[lang]}
+            </Link>
+          </div>
         </div>
-        <Link 
-          to="/login"
-          className="px-6 py-2 rounded-full border border-slate-700 hover:bg-slate-800 transition text-sm font-medium"
-        >
-          Login
-        </Link>
-      </header>
+      </nav>
 
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6">
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-900/30 border border-blue-800 text-blue-300 text-sm mb-8 animate-fade-in-up">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-          </span>
-          Meta Verified Partner
+      {/* Hero Section */}
+      <section className="relative z-10 pt-20 pb-32 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-900/20 border border-blue-500/30 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-8 animate-fade-in-up">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+            </span>
+            v2.0 Now Available
+          </div>
+
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-tight">
+            <span className="text-white">{content.heroTitle[lang]}</span>
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
+              {content.heroHighlight[lang]}
+            </span>
+          </h1>
+          
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+            {content.heroSub[lang]}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+            <Link 
+              to="/login"
+              className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 rounded-full font-bold shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group"
+            >
+              {content.ctaConnect[lang]}
+              <ArrowRight className={`w-5 h-5 transition-transform ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+            </Link>
+            <a href="#demo" className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700 rounded-full font-semibold transition-all backdrop-blur-sm flex items-center justify-center gap-2">
+              <Play className="w-4 h-4 fill-current" />
+              {content.ctaDemo[lang]}
+            </a>
+          </div>
+
+          {/* 3D Dashboard Mockup */}
+          <div className="relative max-w-5xl mx-auto perspective-1000">
+            <div className="relative rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden transform rotate-x-12 hover:rotate-x-0 transition-transform duration-700 ease-out origin-bottom">
+              {/* Fake UI Header */}
+              <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4 gap-2">
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                </div>
+                <div className="ml-4 w-64 h-6 rounded-md bg-slate-900/50 border border-slate-700/50" />
+              </div>
+              
+              {/* Fake UI Body */}
+              <div className="grid grid-cols-5 h-[400px] md:h-[600px] bg-slate-950">
+                {/* Sidebar */}
+                <div className="hidden md:block col-span-1 border-r border-slate-800 p-4 space-y-3">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className="h-8 rounded-lg bg-slate-800/50 w-full animate-pulse" style={{animationDelay: `${i*100}ms`}} />
+                  ))}
+                </div>
+                {/* Content */}
+                <div className="col-span-5 md:col-span-4 p-6 overflow-hidden">
+                  <div className="grid grid-cols-3 gap-6 mb-6">
+                    <div className="h-32 rounded-xl bg-slate-800/50 border border-slate-700/50" />
+                    <div className="h-32 rounded-xl bg-blue-900/10 border border-blue-500/20" />
+                    <div className="h-32 rounded-xl bg-slate-800/50 border border-slate-700/50" />
+                  </div>
+                  <div className="h-64 rounded-xl bg-slate-800/30 border border-slate-700/30 mb-6 flex items-end p-6 gap-4">
+                    {[40, 70, 45, 90, 65, 80, 95].map((h, i) => (
+                      <div key={i} className="flex-1 bg-blue-600/20 rounded-t-lg relative group" style={{height: `${h}%`}}>
+                        <div className="absolute inset-0 bg-gradient-to-t from-blue-600/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Floating Elements */}
+              <div className={`absolute top-20 ${isRTL ? 'left-[-20px]' : 'right-[-20px]'} bg-slate-900/90 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl animate-float`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <Check className="text-green-400 w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Order Received</div>
+                    <div className="font-bold text-white">+ 4,500 DZD</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {/* Glow under dashboard */}
+            <div className="absolute -inset-4 bg-blue-500/20 blur-3xl -z-10 rounded-[3rem]" />
+          </div>
         </div>
+      </section>
 
-        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-b from-white to-slate-400 max-w-4xl">
-          Turn Comments into <br/> <span className="text-blue-500">Sales Automatically.</span>
-        </h1>
-        
-        <p className="text-lg md:text-xl text-slate-400 max-w-2xl mb-10 leading-relaxed">
-          Connect your Facebook Page and WhatsApp. Let our AI handle prices, delivery details, and order taking 24/7 without generic replies.
-        </p>
+      {/* How It Works (Timeline) */}
+      <section className="py-24 relative bg-slate-900/30 border-y border-white/5">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">{content.stepsTitle[lang]}</h2>
+            <p className="text-slate-400">Five simple steps to automate your social commerce.</p>
+          </div>
 
-        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative">
+            {/* Center Line */}
+            <div className={`absolute left-4 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue-500 via-purple-500 to-transparent md:transform md:-translate-x-1/2 ${isRTL ? 'right-4 md:right-1/2 left-auto' : ''}`} />
+
+            {/* Steps */}
+            {[
+              { icon: MessageCircle, title: "Connect", desc: "Link Facebook & Instagram" },
+              { icon: Truck, title: "Configure", desc: "Add products & delivery settings" },
+              { icon: Globe, title: "Publish", desc: "Auto-post across all platforms" },
+              { icon: Bot, title: "Auto-Reply", desc: "AI answers comments & DMs" },
+              { icon: ShoppingBag, title: "Collect", desc: "Get structured orders instantly" },
+            ].map((step, idx) => (
+              <div key={idx} className={`relative flex items-center gap-8 mb-16 ${idx % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
+                <div className="hidden md:block flex-1" />
+                
+                {/* Timeline Dot */}
+                <div className={`absolute left-4 md:left-1/2 transform -translate-x-1/2 w-8 h-8 rounded-full bg-[#020617] border-4 border-blue-500 z-10 ${isRTL ? 'right-4 md:right-1/2 translate-x-1/2 left-auto' : ''}`} />
+                
+                <div className={`flex-1 pl-16 md:pl-0 ${isRTL ? 'pr-16 md:pr-0 pl-0' : ''}`}>
+                  <div className={`p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-blue-500/50 transition-colors backdrop-blur-sm md:max-w-md ${idx % 2 === 0 ? isRTL ? 'mr-auto' : 'mr-auto' : isRTL ? 'ml-auto' : 'ml-auto'}`}>
+                    <div className="w-12 h-12 rounded-lg bg-blue-900/20 flex items-center justify-center mb-4 text-blue-400">
+                      <step.icon size={24} />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      <span className="text-blue-500 mr-2">0{idx + 1}.</span>
+                      {step.title}
+                    </h3>
+                    <p className="text-slate-400">{step.desc}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <FeatureCard 
+              icon={Layers}
+              title="Multi-Channel"
+              desc="Control Facebook Page, Instagram Business, and WhatsApp from a single dashboard."
+            />
+            <FeatureCard 
+              icon={Globe}
+              title="Global Selling"
+              desc="Multi-country support (DZ, FR, MA, TN) with automatic currency conversion."
+            />
+            <FeatureCard 
+              icon={Bot}
+              title="Smart AI Agent"
+              desc="Understands dialects, context, and intent to provide human-like responses."
+            />
+            <FeatureCard 
+              icon={Truck}
+              title="Dynamic Delivery"
+              desc="Calculates shipping costs based on customer region (Wilaya/State) automatically."
+            />
+            <FeatureCard 
+              icon={ShoppingBag}
+              title="Order Parsing"
+              desc="Extracts Name, Address, and Phone from messy chat messages into clean data."
+            />
+            <FeatureCard 
+              icon={Shield}
+              title="Secure & Safe"
+              desc="Uses official Meta APIs. We never ask for your personal password."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Demo Section */}
+      <section id="demo" className="py-24 bg-gradient-to-b from-slate-900/50 to-[#020617] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="inline-block px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-bold mb-6 border border-green-500/20">
+              LIVE DEMO
+            </div>
+            <h2 className="text-4xl font-bold mb-6">See the magic in action.</h2>
+            <p className="text-lg text-slate-400 mb-8 leading-relaxed">
+              When a customer comments "Price?" on your post, AutoSeller replies instantly in DM with product details, images, and shipping costs.
+            </p>
+            <ul className="space-y-4">
+              {[
+                "Instant response time (< 2 seconds)",
+                "Increases conversion by 40%",
+                "Works while you sleep"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3 text-slate-300">
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <Check size={14} className="text-blue-400" />
+                  </div>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative">
+            {/* Chat UI Simulation */}
+            <div className="bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl max-w-md mx-auto transform rotate-2 hover:rotate-0 transition-transform duration-500">
+              <div className="bg-[#0084FF] p-4 text-white flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Bot size={24} />
+                </div>
+                <div>
+                  <div className="font-bold">AutoSeller Bot</div>
+                  <div className="text-xs opacity-80">Typically replies instantly</div>
+                </div>
+              </div>
+              <div className="p-6 bg-slate-100 h-[400px] flex flex-col gap-4 overflow-hidden relative">
+                <div className="self-end bg-[#0084FF] text-white p-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm shadow-sm">
+                  Prix livraison Alger svp?
+                </div>
+                <div className="self-start bg-white text-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[90%] text-sm shadow-sm space-y-2 animate-fade-in-up delay-300">
+                  <p className="font-bold text-[#0084FF]">Smart Watch Ultra</p>
+                  <div className="h-32 bg-slate-200 rounded-lg mb-2 bg-[url('https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80')] bg-cover bg-center"></div>
+                  <p>The price is <strong>4,500 DZD</strong>.</p>
+                  <p>Delivery to <strong>Algiers</strong> is 400 DZD via Yalidine.</p>
+                  <p className="text-xs text-slate-500 mt-2">Reply with Name & Phone to order!</p>
+                </div>
+                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-slate-100 to-transparent pointer-events-none" />
+              </div>
+              <div className="p-4 bg-white border-t border-slate-200">
+                <div className="h-10 bg-slate-100 rounded-full w-full" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-32 px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl font-bold mb-4">{content.pricingTitle[lang]}</h2>
+            <p className="text-slate-400">{content.pricingSub[lang]}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+            <PricingCard 
+              title="Free" 
+              price="0" 
+              features={["1 Social Account", "50 Auto Replies/mo", "Basic Analytics", "Community Support"]}
+            />
+            <PricingCard 
+              title="Pro" 
+              price="29" 
+              featured 
+              features={["3 Social Accounts", "Unlimited Replies", "Advanced Analytics", "Priority Support", "Remove Branding", "Multi-Country"]}
+            />
+            <PricingCard 
+              title="Business" 
+              price="99" 
+              features={["10 Social Accounts", "Unlimited Everything", "API Access", "Dedicated Manager", "Custom Integrations"]}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 to-purple-900/20 pointer-events-none" />
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-5xl font-bold mb-8 text-white">Turn Your Social Media Into a <span className="text-blue-500">Sales Machine</span></h2>
+          <p className="text-xl text-slate-400 mb-12">
+            Join 10,000+ merchants automating their business today. No credit card required.
+          </p>
           <Link 
             to="/login"
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-semibold shadow-lg shadow-blue-900/50 transition-all hover:scale-105 flex items-center justify-center gap-2"
+            className="px-12 py-5 bg-white text-slate-900 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all inline-flex items-center gap-3"
           >
-            Start Free Trial
-            <Zap size={18} />
+            Start Now <Zap fill="currentColor" size={20} />
           </Link>
-          <a href="#demo" className="px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-slate-300 rounded-2xl font-semibold transition-all backdrop-blur-sm">
-            View Demo
-          </a>
         </div>
+      </section>
 
-        {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl w-full text-left">
-          <FeatureCard 
-            icon={Bot}
-            title="Auto Reply Engine"
-            desc="Detects products and wilayas automatically. Gives exact pricing including delivery costs."
-          />
-          <FeatureCard 
-            icon={ShoppingBag}
-            title="Product Sync"
-            desc="Import your catalog. AutoSeller knows your stock levels and product details instantly."
-          />
-          <FeatureCard 
-            icon={TrendingUp}
-            title="Order Capture"
-            desc="Converts chats into structured orders. Collects name, phone, and address automatically."
-          />
+      {/* Footer */}
+      <footer className="border-t border-slate-800 bg-[#020617] py-12 px-6">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2 font-bold text-xl text-slate-300">
+            <Bot size={24} /> AutoSeller
+          </div>
+          <div className="text-slate-500 text-sm">
+            © 2024 AutoSeller. {content.footerRights[lang]}
+          </div>
+          <div className="flex gap-6 text-slate-400">
+            <a href="#" className="hover:text-white transition-colors">Privacy</a>
+            <a href="#" className="hover:text-white transition-colors">Terms</a>
+            <a href="#" className="hover:text-white transition-colors">Twitter</a>
+          </div>
         </div>
-      </main>
-
-      <footer className="relative z-10 border-t border-slate-800/50 py-8 text-center text-slate-500 text-sm">
-        © 2024 AutoSeller. Smart Commerce.
       </footer>
     </div>
   );
 };
 
-const FeatureCard = ({ icon: Icon, title, desc }: any) => (
-  <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-slate-700 transition-colors backdrop-blur-sm">
-    <div className="w-12 h-12 rounded-lg bg-blue-900/20 flex items-center justify-center mb-4 text-blue-400">
-      <Icon size={24} />
+// Internal Components for Landing Page
+
+const FeatureCard: React.FC<{ icon: any, title: string, desc: string }> = ({ icon: Icon, title, desc }) => (
+  <div className="group p-8 rounded-3xl bg-slate-900/40 border border-slate-800 hover:border-blue-500/50 hover:bg-slate-800/60 transition-all duration-300 backdrop-blur-sm">
+    <div className="w-14 h-14 rounded-2xl bg-blue-900/20 flex items-center justify-center mb-6 text-blue-400 group-hover:scale-110 transition-transform duration-300">
+      <Icon size={28} />
     </div>
-    <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-    <p className="text-slate-400 leading-relaxed">{desc}</p>
+    <h3 className="text-xl font-bold text-white mb-3">{title}</h3>
+    <p className="text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">{desc}</p>
+  </div>
+);
+
+const PricingCard: React.FC<{ title: string, price: string, features: string[], featured?: boolean }> = ({ title, price, features, featured }) => (
+  <div className={`p-8 rounded-3xl border transition-all duration-300 relative ${featured ? 'bg-slate-800/80 border-blue-500 shadow-2xl shadow-blue-900/20 scale-105 z-10' : 'bg-slate-900/20 border-slate-800 hover:border-slate-700'}`}>
+    {featured && (
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+        Most Popular
+      </div>
+    )}
+    <h3 className="text-xl font-medium text-slate-300 mb-2">{title}</h3>
+    <div className="flex items-baseline gap-1 mb-6">
+      <span className="text-4xl font-bold text-white">${price}</span>
+      <span className="text-slate-500">/mo</span>
+    </div>
+    <ul className="space-y-4 mb-8">
+      {features.map((f, i) => (
+        <li key={i} className="flex items-center gap-3 text-slate-300 text-sm">
+          <Check size={16} className={featured ? "text-blue-400" : "text-slate-500"} />
+          {f}
+        </li>
+      ))}
+    </ul>
+    <Link 
+      to="/login"
+      className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center ${featured ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'}`}
+    >
+      Choose {title}
+    </Link>
   </div>
 );

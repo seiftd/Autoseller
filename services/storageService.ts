@@ -1,10 +1,12 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country } from '../types';
+import { DEFAULT_COUNTRIES } from '../constants';
 
 const PRODUCTS_KEY = 'autoseller_products';
 const ORDERS_KEY = 'autoseller_orders';
 const ACCOUNTS_KEY = 'autoseller_accounts';
 const CONVERSATIONS_KEY = 'autoseller_conversations';
 const SETTINGS_KEY = 'autoseller_settings';
+const COUNTRIES_KEY = 'autoseller_countries';
 
 // Mock Data Initialization
 const MOCK_ACCOUNTS: SocialAccount[] = [
@@ -22,9 +24,21 @@ const MOCK_PRODUCTS: Product[] = [
     stock: 50, 
     category: 'Electronics',
     hashtags: ['#smartwatch', '#tech', '#dzshop'],
-    imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
+    images: [
+        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?auto=format&fit=crop&w=600&q=80'
+    ],
     active: true,
-    shipping: { type: 'paid', defaultCost: 600, wilayaCosts: { 'Algiers': 400 }, companies: ['Yalidine'] },
+    targetCountryId: 'dz',
+    currency: 'DZD',
+    shipping: { 
+        type: 'paid', 
+        defaultCost: 600, 
+        locationCosts: { 'Algiers': 400 }, 
+        companies: ['Yalidine'] 
+    },
     paymentMethods: ['cod'],
     publishedTo: ['Facebook']
   },
@@ -36,11 +50,44 @@ const MOCK_PRODUCTS: Product[] = [
     stock: 120, 
     category: 'Audio',
     hashtags: ['#earbuds', '#music', '#promo'],
-    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=300&q=80',
+    imageUrl: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80',
+    images: [
+        'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?auto=format&fit=crop&w=600&q=80',
+        'https://images.unsplash.com/photo-1629367494173-c78a56567877?auto=format&fit=crop&w=600&q=80'
+    ],
     active: true,
-    shipping: { type: 'free', defaultCost: 0, wilayaCosts: {}, companies: ['Yalidine'] },
+    targetCountryId: 'dz',
+    currency: 'DZD',
+    shipping: { 
+        type: 'free', 
+        defaultCost: 0, 
+        locationCosts: {}, 
+        companies: ['Yalidine'] 
+    },
     paymentMethods: ['cod'],
     publishedTo: ['Facebook', 'WhatsApp']
+  },
+  { 
+    id: '3', 
+    name: 'Vintage Camera Lens', 
+    description: 'Perfect condition 50mm lens for Canon.',
+    price: 150, 
+    stock: 5, 
+    category: 'Photography',
+    hashtags: ['#camera', '#vintage', '#france'],
+    imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80',
+    images: ['https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80'],
+    active: true,
+    targetCountryId: 'fr',
+    currency: 'EUR',
+    shipping: { 
+        type: 'paid', 
+        defaultCost: 12, 
+        locationCosts: { 'Île-de-France': 8 }, 
+        companies: ['La Poste'] 
+    },
+    paymentMethods: ['prepaid'],
+    publishedTo: ['Instagram']
   }
 ];
 
@@ -50,6 +97,19 @@ const MOCK_SETTINGS: DeliverySettings = {
 };
 
 export const storageService = {
+  // COUNTRIES
+  getCountries: (): Country[] => {
+      const data = localStorage.getItem(COUNTRIES_KEY);
+      if (!data) {
+          localStorage.setItem(COUNTRIES_KEY, JSON.stringify(DEFAULT_COUNTRIES));
+          return DEFAULT_COUNTRIES;
+      }
+      return JSON.parse(data);
+  },
+  saveCountries: (countries: Country[]) => {
+      localStorage.setItem(COUNTRIES_KEY, JSON.stringify(countries));
+  },
+
   // ACCOUNTS
   getAccounts: (): SocialAccount[] => {
     const data = localStorage.getItem(ACCOUNTS_KEY);
@@ -122,7 +182,7 @@ export const storageService = {
     
     return {
       totalOrders: orders.length,
-      revenue: orders.reduce((sum, o) => sum + o.total, 0),
+      revenue: orders.reduce((sum, o) => sum + o.total, 0), // Note: Mixing currencies in sum. Should separate in real app.
       activeProducts: products.filter(p => p.active).length,
       connectedAccounts: accounts.filter(a => a.connected).length,
       messagesProcessed: 342, // Mock

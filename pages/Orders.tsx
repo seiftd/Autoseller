@@ -50,7 +50,7 @@ export const Orders: React.FC<Props> = ({ lang }) => {
                             </div>
                             
                             <div className="flex flex-col items-end justify-center min-w-[150px]">
-                                <span className="text-2xl font-bold text-white">{order.total} DA</span>
+                                <span className="text-2xl font-bold text-white">{order.total} <span className="text-sm font-normal text-slate-400">{order.currency || 'DA'}</span></span>
                                 <span className={`
                                     mt-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide
                                     ${order.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' : ''}

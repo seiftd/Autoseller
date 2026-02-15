@@ -2,6 +2,8 @@ export type Language = 'en' | 'fr' | 'ar';
 
 export type Platform = 'Facebook' | 'Instagram' | 'WhatsApp';
 
+export type Currency = 'DZD' | 'EUR' | 'USD' | 'MAD' | 'TND';
+
 export interface SocialAccount {
   id: string;
   platform: Platform;
@@ -11,14 +13,28 @@ export interface SocialAccount {
   lastSync: number;
 }
 
+export interface Region {
+  id: string;
+  name: string;
+}
+
+export interface Country {
+  id: string;
+  name: string;
+  currency: Currency;
+  regions: Region[];
+  shippingCompanies: string[];
+}
+
 export interface ShippingConfig {
   type: 'free' | 'paid' | 'custom';
   defaultCost: number;
   freeThreshold?: number;
-  wilayaCosts: Record<string, number>; // wilaya name -> cost
+  locationCosts: Record<string, number>; // region name -> cost
   companies: string[];
 }
 
+// Deprecated in favor of Country configuration, but kept for compatibility if needed
 export interface DeliverySettings {
   defaultCost: number;
   shippingCompany: 'Yalidine' | 'ZR Express' | 'EMS' | 'Custom';
@@ -35,6 +51,11 @@ export interface Product {
   imageUrl?: string;
   images?: string[];
   active: boolean;
+  
+  // Multi-country fields
+  targetCountryId: string;
+  currency: Currency;
+
   shipping: ShippingConfig;
   paymentMethods: ('cod' | 'prepaid')[];
   publishedTo: Platform[];
@@ -44,10 +65,12 @@ export interface Order {
   id: string;
   customerName: string;
   phone: string;
-  wilaya: string;
+  wilaya: string; // Keep for backward compat, acts as region
   address: string;
   items: { productId: string; quantity: number; priceAtOrder: number; name: string }[];
   total: number;
+  currency: Currency;
+  countryId?: string;
   status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   createdAt: number;
   platform: Platform;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { storageService } from '../services/storageService';
-import { Product, Language, ShippingConfig } from '../types';
-import { TEXTS, WILAYAS, SHIPPING_COMPANIES } from '../constants';
-import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Product, Language, Country } from '../types';
+import { TEXTS } from '../constants';
+import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -10,11 +10,13 @@ interface Props {
 
 export const Products: React.FC<Props> = ({ lang }) => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
   const [showForm, setShowForm] = useState(false);
   const t = TEXTS;
   
   // Form State
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [targetCountryId, setTargetCountryId] = useState<string>('dz');
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
@@ -23,33 +25,56 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const [shippingType, setShippingType] = useState<'free'|'paid'>('paid');
   const [defaultShipping, setDefaultShipping] = useState(600);
   const [autoPublish, setAutoPublish] = useState(true);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  
+  // Multi-image state
+  const [productImages, setProductImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    loadProducts();
+    loadData();
   }, []);
 
-  const loadProducts = () => {
+  const loadData = () => {
     setProducts(storageService.getProducts());
+    setCountries(storageService.getCountries());
   };
 
-  const handleImageSelect = (file: File) => {
-    if (file.size > 5 * 1024 * 1024) {
-      alert("File too large. Max 5MB.");
-      return;
-    }
-    // Check file type
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
-      alert("Invalid file type. Only JPG, PNG, WEBP allowed.");
-      return;
+  const getActiveCountry = () => countries.find(c => c.id === targetCountryId) || countries[0];
+
+  const processFiles = async (files: FileList | File[]) => {
+    if (productImages.length + files.length > 5) {
+        alert("Maximum 5 images allowed per product.");
+        return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    setUploading(true);
+    const newImages: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 5 * 1024 * 1024) {
+            alert(`File ${file.name} too large. Max 5MB.`);
+            continue;
+        }
+        if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+            alert(`File ${file.name} invalid type. Only JPG, PNG, WEBP.`);
+            continue;
+        }
+
+        // Simulate upload delay
+        await new Promise(r => setTimeout(r, 500));
+        
+        const reader = new FileReader();
+        const result = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+        });
+        newImages.push(result);
+    }
+
+    setProductImages(prev => [...prev, ...newImages]);
+    setUploading(false);
   };
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -65,14 +90,34 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const onDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleImageSelect(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files) {
+        processFiles(Array.from(e.dataTransfer.files));
     }
-  }, []);
+  }, [productImages]);
+
+  const removeImage = (index: number) => {
+      setProductImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const setPrimaryImage = (index: number) => {
+      setProductImages(prev => {
+          const newArr = [...prev];
+          const [selected] = newArr.splice(index, 1);
+          newArr.unshift(selected);
+          return newArr;
+      });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       
+      if (productImages.length === 0) {
+          alert("Please upload at least one image.");
+          return;
+      }
+
+      const activeCountry = getActiveCountry();
+
       const newProduct: Product = {
           id: editingId || crypto.randomUUID(),
           name,
@@ -81,13 +126,16 @@ export const Products: React.FC<Props> = ({ lang }) => {
           description: desc,
           category,
           hashtags: ['#new', `#${category.toLowerCase()}`],
-          imageUrl: imagePreview || undefined,
+          imageUrl: productImages[0], // First image is primary
+          images: productImages, // Store all images
           active: true,
+          targetCountryId: activeCountry.id,
+          currency: activeCountry.currency,
           shipping: {
               type: shippingType,
               defaultCost: shippingType === 'free' ? 0 : defaultShipping,
-              wilayaCosts: {},
-              companies: ['Yalidine']
+              locationCosts: {}, // Simplified for now
+              companies: activeCountry.shippingCompanies
           },
           paymentMethods: ['cod'],
           publishedTo: autoPublish ? ['Facebook', 'Instagram'] : (editingId ? products.find(p=>p.id===editingId)?.publishedTo || [] : [])
@@ -97,30 +145,33 @@ export const Products: React.FC<Props> = ({ lang }) => {
       
       if (autoPublish) {
           // Simulate Social Media Post Structure
+          const postType = productImages.length > 1 ? "Carousel/Multi-Image Post" : "Single Image Post";
           const postContent = `
-[Image Attached]
+[${postType} Attached - ${productImages.length} Images]
 🔥 ${newProduct.name}
 
 ${newProduct.description}
 
-Price: ${newProduct.price} DA
-Delivery: ${newProduct.shipping.type === 'free' ? 'FREE' : `Starts from ${newProduct.shipping.defaultCost} DA`}
+Price: ${newProduct.price} ${newProduct.currency}
+Delivery: ${newProduct.shipping.type === 'free' ? 'FREE' : `Starts from ${newProduct.shipping.defaultCost} ${newProduct.currency}`}
+Available in: ${activeCountry.name}
 
 Payment: Cash on delivery
 
 ${newProduct.hashtags.join(' ')}
           `;
           console.log("PUBLISHING TO SOCIALS:", postContent);
-          alert(`Product Published to Facebook & Instagram! \n\nCheck console for post preview.`);
+          alert(`Product Published to Facebook & Instagram! \n\nType: ${postType}\nCheck console for preview.`);
       }
       
-      loadProducts();
+      loadData();
       setShowForm(false);
       resetForm();
   };
 
   const handleEdit = (product: Product) => {
     setEditingId(product.id);
+    setTargetCountryId(product.targetCountryId || 'dz');
     setName(product.name);
     setPrice(product.price.toString());
     setStock(product.stock.toString());
@@ -128,7 +179,7 @@ ${newProduct.hashtags.join(' ')}
     setCategory(product.category);
     setShippingType(product.shipping.type);
     setDefaultShipping(product.shipping.defaultCost);
-    setImagePreview(product.imageUrl || null);
+    setProductImages(product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []));
     setAutoPublish(false);
     setShowForm(true);
   };
@@ -136,7 +187,7 @@ ${newProduct.hashtags.join(' ')}
   const handleDelete = (id: string) => {
       if(confirm('Delete this product?')) {
           storageService.deleteProduct(id);
-          loadProducts();
+          loadData();
       }
   };
 
@@ -148,9 +199,12 @@ ${newProduct.hashtags.join(' ')}
       setDesc('');
       setCategory('Electronics');
       setDefaultShipping(600);
-      setImagePreview(null);
+      setProductImages([]);
       setAutoPublish(true);
+      // Reset country to first one or keep current selection? Keeping current for batch entry workflow
   };
+
+  const activeCountry = getActiveCountry();
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -162,7 +216,7 @@ ${newProduct.hashtags.join(' ')}
             {!showForm && (
                 <button 
                     onClick={() => { resetForm(); setShowForm(true); }}
-                    className="bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-all"
+                    className="bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
                 >
                     <Plus size={18} />
                     {t.addProduct[lang]}
@@ -173,109 +227,178 @@ ${newProduct.hashtags.join(' ')}
         {/* Add/Edit Product Form */}
         {showForm && (
             <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl animate-fade-in-up">
-                <h2 className="text-xl font-bold text-white mb-6">
-                    {editingId ? 'Edit Product' : 'New Product Details'}
-                </h2>
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    {/* Left Column: Image Upload */}
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-bold text-white">
+                        {editingId ? 'Edit Product' : 'New Product Details'}
+                    </h2>
+                    <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white">
+                        <X size={24} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column: Multi-Image Gallery */}
                     <div className="space-y-4">
-                        <label className="block text-sm text-slate-400 mb-1">{t.productImage[lang]}</label>
+                        <label className="block text-sm text-slate-400 mb-1">Product Gallery ({productImages.length}/5)</label>
                         
-                        {!imagePreview ? (
-                             <div 
-                                onDragOver={onDragOver}
-                                onDragLeave={onDragLeave}
-                                onDrop={onDrop}
-                                className={`
-                                    border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-all cursor-pointer h-64
-                                    ${isDragging 
-                                        ? 'border-blue-500 bg-blue-500/10' 
-                                        : 'border-slate-700 bg-slate-900/50 hover:border-blue-400 hover:bg-slate-900'}
-                                `}
-                                onClick={() => document.getElementById('file-upload')?.click()}
-                             >
-                                <input 
-                                    id="file-upload" 
-                                    type="file" 
-                                    accept="image/*" 
-                                    className="hidden" 
-                                    onChange={(e) => e.target.files && handleImageSelect(e.target.files[0])}
-                                />
-                                <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4">
-                                    <Upload className={`text-slate-400 ${isDragging ? 'text-blue-400' : ''}`} size={24} />
+                        {/* Main Preview */}
+                        <div className="relative aspect-square rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden group">
+                            {productImages.length > 0 ? (
+                                <>
+                                    <img src={productImages[0]} alt="Primary" className="w-full h-full object-contain" />
+                                    <div className="absolute top-2 left-2 bg-accent text-white text-xs px-2 py-1 rounded-md shadow-sm font-medium flex items-center gap-1">
+                                        <Star size={10} fill="currentColor" /> Primary
+                                    </div>
+                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                         <button 
+                                            type="button"
+                                            onClick={() => removeImage(0)}
+                                            className="bg-red-500/90 text-white p-3 rounded-full hover:bg-red-600 transition"
+                                            title="Remove Image"
+                                         >
+                                             <Trash2 size={20} />
+                                         </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
+                                    <ImageIcon size={48} className="mb-2 opacity-50" />
+                                    <span className="text-sm">No image selected</span>
                                 </div>
-                                <p className="text-slate-300 font-medium mb-1">{t.dragDrop[lang]}</p>
-                                <p className="text-xs text-slate-500">JPG, PNG, WEBP (Max 5MB)</p>
-                             </div>
-                        ) : (
-                            <div className="relative group rounded-2xl overflow-hidden border border-slate-700 bg-slate-900 h-64 flex items-center justify-center">
-                                <img src={imagePreview} alt="Preview" className="w-full h-full object-contain" />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            )}
+                        </div>
+
+                        {/* Thumbnails & Upload */}
+                        <div className="grid grid-cols-4 gap-2">
+                             {productImages.slice(1).map((img, idx) => (
+                                 <div key={idx} className="relative aspect-square rounded-lg bg-slate-900 border border-slate-700 overflow-hidden group cursor-pointer" onClick={() => setPrimaryImage(idx + 1)}>
+                                     <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-1">
+                                         <span className="text-[10px] text-white font-medium">Set Primary</span>
+                                         <button 
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); removeImage(idx + 1); }}
+                                            className="text-red-400 hover:text-red-300"
+                                         >
+                                             <XCircle size={16} />
+                                         </button>
+                                     </div>
+                                 </div>
+                             ))}
+                             
+                             {/* Add More Button */}
+                             {productImages.length < 5 && (
+                                 <div 
+                                    onClick={() => document.getElementById('gallery-upload')?.click()}
+                                    onDragOver={onDragOver}
+                                    onDragLeave={onDragLeave}
+                                    onDrop={onDrop}
+                                    className={`
+                                        aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all
+                                        ${isDragging ? 'border-blue-500 bg-blue-500/10' : 'border-slate-700 bg-slate-900/50 hover:border-slate-500 hover:bg-slate-800'}
+                                    `}
+                                 >
+                                     {uploading ? (
+                                         <div className="w-5 h-5 border-2 border-slate-500 border-t-white rounded-full animate-spin"></div>
+                                     ) : (
+                                         <>
+                                            <Plus size={20} className="text-slate-400" />
+                                            <span className="text-[10px] text-slate-500 mt-1">Add</span>
+                                         </>
+                                     )}
+                                     <input 
+                                        id="gallery-upload" 
+                                        type="file" 
+                                        accept="image/*" 
+                                        multiple
+                                        className="hidden" 
+                                        onChange={(e) => e.target.files && processFiles(Array.from(e.target.files))}
+                                     />
+                                 </div>
+                             )}
+                        </div>
+                    </div>
+
+                    {/* Right Columns: Form Fields */}
+                    <div className="lg:col-span-2 space-y-6">
+                        
+                        {/* Country Selector */}
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-blue-900/50 mb-4">
+                            <label className="block text-sm text-blue-300 mb-2 font-medium flex items-center gap-2">
+                                <Globe size={14} /> Target Country & Market
+                            </label>
+                            <div className="flex gap-2 flex-wrap">
+                                {countries.map(c => (
                                     <button 
+                                        key={c.id}
                                         type="button"
-                                        onClick={() => setImagePreview(null)}
-                                        className="bg-red-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-red-600 transition"
+                                        onClick={() => setTargetCountryId(c.id)}
+                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${targetCountryId === c.id ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'}`}
                                     >
-                                        <X size={16} />
-                                        {t.remove[lang]}
+                                        {c.name}
                                     </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Product Name</label>
+                                    <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" placeholder="e.g., Smart Watch Ultra" />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Price ({activeCountry.currency})</label>
+                                        <input required type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm text-slate-400 mb-1">Stock</label>
+                                        <input required type="number" value={stock} onChange={e=>setStock(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-slate-400 mb-1">Category</label>
+                                    <select value={category} onChange={e=>setCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none">
+                                        <option>Electronics</option>
+                                        <option>Fashion</option>
+                                        <option>Home</option>
+                                        <option>Beauty</option>
+                                        <option>Photography</option>
+                                    </select>
                                 </div>
                             </div>
-                        )}
-                    </div>
-
-                    {/* Right Column: Form Fields */}
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm text-slate-400 mb-1">Product Name</label>
-                            <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" placeholder="e.g., Smart Watch Ultra" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm text-slate-400 mb-1">Price (DA)</label>
-                                <input required type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-slate-400 mb-1">Stock</label>
-                                <input required type="number" value={stock} onChange={e=>setStock(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
+                            <div className="space-y-4">
+                                <div>
+                                     <label className="block text-sm text-slate-400 mb-1">Description</label>
+                                     <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none h-[180px] resize-none" placeholder="Describe features, warranty, etc." />
+                                </div>
                             </div>
                         </div>
-                        <div>
-                            <label className="block text-sm text-slate-400 mb-1">Category</label>
-                            <select value={category} onChange={e=>setCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none">
-                                <option>Electronics</option>
-                                <option>Fashion</option>
-                                <option>Home</option>
-                                <option>Beauty</option>
-                            </select>
-                        </div>
-                        <div>
-                             <label className="block text-sm text-slate-400 mb-1">Description</label>
-                             <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none h-24" placeholder="Describe features, warranty, etc." />
-                        </div>
-                    </div>
 
-                    {/* Bottom Full Width: Shipping & Publishing */}
-                    <div className="col-span-1 md:col-span-2 space-y-6 border-t border-slate-700 pt-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Shipping & Publishing */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700 pt-6">
                             <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
                                 <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Truck size={16}/> Shipping Configuration</h3>
                                 <div className="flex gap-4 mb-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" checked={shippingType==='paid'} onChange={()=>setShippingType('paid')} className="accent-blue-500" />
-                                        <span className="text-slate-300">Paid Shipping</span>
+                                        <span className="text-slate-300">Paid</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input type="radio" checked={shippingType==='free'} onChange={()=>setShippingType('free')} className="accent-blue-500" />
-                                        <span className="text-slate-300">Free Shipping</span>
+                                        <span className="text-slate-300">Free</span>
                                     </label>
                                 </div>
                                 {shippingType === 'paid' && (
                                     <div>
-                                        <label className="block text-sm text-slate-400 mb-1">Default Cost (DA)</label>
+                                        <label className="block text-sm text-slate-400 mb-1">Default Cost ({activeCountry.currency})</label>
                                         <input type="number" value={defaultShipping} onChange={e=>setDefaultShipping(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
                                     </div>
                                 )}
+                                <div className="mt-3 text-xs text-slate-500">
+                                    Uses {activeCountry.name} carriers: {activeCountry.shippingCompanies.join(', ')}
+                                </div>
                             </div>
 
                             <div className="p-4 bg-blue-900/10 rounded-xl border border-blue-900/30">
@@ -285,20 +408,20 @@ ${newProduct.hashtags.join(' ')}
                                         type="checkbox" 
                                         checked={autoPublish} 
                                         onChange={e=>setAutoPublish(e.target.checked)} 
-                                        disabled={!!editingId} // Disable auto-publish on edit to prevent reposting spam
+                                        disabled={!!editingId} 
                                         className="w-5 h-5 accent-blue-500 rounded" 
                                     />
                                     <div>
                                         <p className="text-white font-medium">Auto-Publish to Connected Accounts</p>
                                         <p className="text-xs text-slate-400">
-                                            {editingId ? "Republishing disabled during edit" : "Post to Facebook & Instagram automatically"}
+                                            {productImages.length > 1 ? "Will create a carousel post (Instagram) or Album (Facebook)" : "Single image post"}
                                         </p>
                                     </div>
                                 </label>
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3">
+                        <div className="flex justify-end gap-3 pt-2">
                             <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 text-slate-400 hover:text-white transition">Cancel</button>
                             <button type="submit" className="bg-accent hover:bg-accentHover px-8 py-2.5 rounded-xl text-white font-bold shadow-lg shadow-blue-900/20">{t.save[lang]}</button>
                         </div>
@@ -315,7 +438,7 @@ ${newProduct.hashtags.join(' ')}
                         <th className="p-4 font-medium w-24 text-center">Image</th>
                         <th className="p-4 font-medium">Product Details</th>
                         <th className="p-4 font-medium">Price</th>
-                        <th className="p-4 font-medium">Shipping</th>
+                        <th className="p-4 font-medium">Market</th>
                         <th className="p-4 font-medium">Status</th>
                         <th className="p-4 font-medium text-right">Actions</th>
                     </tr>
@@ -323,10 +446,17 @@ ${newProduct.hashtags.join(' ')}
                 <tbody className="divide-y divide-slate-700/50 text-slate-300">
                     {products.map(p => (
                         <tr key={p.id} className="hover:bg-slate-700/20 transition-colors group">
-                            <td className="p-4 text-center">
-                                <div className="w-16 h-16 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden relative mx-auto">
+                            <td className="p-4 text-center align-top">
+                                <div className="w-16 h-16 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden relative mx-auto group-hover:shadow-lg transition-all">
                                     {p.imageUrl ? (
-                                        <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" />
+                                        <>
+                                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                                            {p.images && p.images.length > 1 && (
+                                                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-tl-md backdrop-blur-sm flex items-center gap-0.5">
+                                                    <Layers size={8} /> +{p.images.length - 1}
+                                                </div>
+                                            )}
+                                        </>
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-slate-600">
                                             <ImageIcon size={24} />
@@ -334,20 +464,20 @@ ${newProduct.hashtags.join(' ')}
                                     )}
                                 </div>
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 align-top">
                                 <div className="font-bold text-white text-lg">{p.name}</div>
                                 <div className="text-xs text-slate-500 mt-1 flex flex-col gap-1">
                                     <span>{p.category}</span>
                                     <span>Stock: <span className={p.stock < 10 ? 'text-red-400 font-bold' : 'text-slate-400'}>{p.stock} units</span></span>
                                 </div>
                             </td>
-                            <td className="p-4 font-mono text-white">{p.price} DA</td>
-                            <td className="p-4">
-                                <span className={`px-2 py-1 rounded text-xs font-medium ${p.shipping.type === 'free' ? 'bg-green-500/10 text-green-400' : 'bg-slate-700 text-slate-300'}`}>
-                                    {p.shipping.type === 'free' ? 'FREE' : `${p.shipping.defaultCost} DA`}
+                            <td className="p-4 font-mono text-white align-top">{p.price} <span className="text-xs text-slate-500">{p.currency}</span></td>
+                            <td className="p-4 align-top">
+                                <span className="px-2 py-1 rounded text-xs font-bold uppercase bg-slate-700 text-slate-300">
+                                    {p.targetCountryId ? countries.find(c=>c.id===p.targetCountryId)?.name || 'Global' : 'Global'}
                                 </span>
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 align-top">
                                 <div className="flex flex-col gap-2">
                                     <div className="flex items-center gap-2">
                                         {p.publishedTo.includes('Facebook') && <Facebook size={16} className="text-blue-500" title="Published on Facebook"/>}
@@ -356,7 +486,7 @@ ${newProduct.hashtags.join(' ')}
                                     </div>
                                 </div>
                             </td>
-                            <td className="p-4">
+                            <td className="p-4 align-top">
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => handleEdit(p)} className="p-2 hover:bg-slate-700 rounded-lg text-blue-400 transition-colors" title="Edit">
                                         <Edit2 size={18}/>

@@ -1,4 +1,4 @@
-import { Translation } from './types';
+import { Translation, Country } from './types';
 import { 
   LayoutDashboard, 
   ShoppingBag, 
@@ -9,7 +9,8 @@ import {
   Share2,
   BarChart3,
   CreditCard,
-  Truck
+  Truck,
+  Globe
 } from 'lucide-react';
 
 export const TEXTS: Translation = {
@@ -54,9 +55,9 @@ export const TEXTS: Translation = {
     ar: "الحسابات المتصلة"
   },
   deliverySettings: {
-    en: "Delivery Settings",
-    fr: "Paramètres de livraison",
-    ar: "إعدادات التوصيل"
+    en: "Settings",
+    fr: "Paramètres",
+    ar: "الإعدادات"
   },
   analytics: {
     en: "Analytics",
@@ -177,6 +178,11 @@ export const TEXTS: Translation = {
     en: "Remove",
     fr: "Supprimer",
     ar: "حذف"
+  },
+  countrySettings: {
+      en: "Countries & Delivery",
+      fr: "Pays & Livraison",
+      ar: "الدول والتوصيل"
   }
 };
 
@@ -186,12 +192,12 @@ export const MENU_ITEMS = [
   { path: '/orders', icon: Package, labelKey: 'orders' },
   { path: '/inbox', icon: MessageSquareText, labelKey: 'inbox' },
   { path: '/connected-accounts', icon: Share2, labelKey: 'connectedAccounts' },
-  { path: '/delivery-settings', icon: Truck, labelKey: 'deliverySettings' },
+  { path: '/delivery-settings', icon: Settings, labelKey: 'deliverySettings' }, // Changed icon to Settings
   { path: '/analytics', icon: BarChart3, labelKey: 'analytics' },
   { path: '/billing', icon: CreditCard, labelKey: 'billing' },
 ];
 
-export const WILAYAS = [
+export const ALGERIA_WILAYAS = [
   "Adrar", "Chlef", "Laghouat", "Oum El Bouaghi", "Batna", "Béjaïa", "Biskra", "Béchar", "Blida", "Bouira", 
   "Tamanrasset", "Tébessa", "Tlemcen", "Tiaret", "Tizi Ouzou", "Algiers", "Djelfa", "Jijel", "Sétif", "Saïda", 
   "Skikda", "Sidi Bel Abbès", "Annaba", "Guelma", "Constantine", "Médéa", "Mostaganem", "M'Sila", "Mascara", 
@@ -199,4 +205,46 @@ export const WILAYAS = [
   "El Oued", "Khenchela", "Souk Ahras", "Tipaza", "Mila", "Aïn Defla", "Naâma", "Aïn Témouchent", "Ghardaïa", "Relizane"
 ];
 
-export const SHIPPING_COMPANIES = ["Yalidine", "ZR Express", "EMS", "Kazi Tour", "May Stro", "Custom"];
+export const FRANCE_REGIONS = [
+    "Île-de-France", "Provence-Alpes-Côte d'Azur", "Auvergne-Rhône-Alpes", "Nouvelle-Aquitaine", "Occitanie", "Hauts-de-France", "Grand Est", "Brittany", "Normandy"
+];
+
+export const MOROCCO_REGIONS = [
+    "Casablanca-Settat", "Rabat-Salé-Kénitra", "Marrakech-Safi", "Fès-Meknès", "Tangier-Tétouan-Al Hoceïma", "Souss-Massa"
+];
+
+export const TUNISIA_REGIONS = [
+    "Tunis", "Ariana", "Ben Arous", "Manouba", "Nabeul", "Zaghouan", "Bizerte", "Béja", "Jendouba", "Kef", "Siliana", "Sousse", "Monastir", "Mahdia", "Sfax"
+];
+
+
+export const DEFAULT_COUNTRIES: Country[] = [
+    {
+        id: 'dz',
+        name: 'Algeria',
+        currency: 'DZD',
+        regions: ALGERIA_WILAYAS.map(n => ({ id: n, name: n })),
+        shippingCompanies: ['Yalidine', 'ZR Express', 'EMS', 'Kazi Tour']
+    },
+    {
+        id: 'fr',
+        name: 'France',
+        currency: 'EUR',
+        regions: FRANCE_REGIONS.map(n => ({ id: n, name: n })),
+        shippingCompanies: ['La Poste', 'Chronopost', 'Mondial Relay', 'DHL']
+    },
+    {
+        id: 'ma',
+        name: 'Morocco',
+        currency: 'MAD',
+        regions: MOROCCO_REGIONS.map(n => ({ id: n, name: n })),
+        shippingCompanies: ['Amana', 'CTM Messagerie', 'Aramex']
+    },
+    {
+        id: 'tn',
+        name: 'Tunisia',
+        currency: 'TND',
+        regions: TUNISIA_REGIONS.map(n => ({ id: n, name: n })),
+        shippingCompanies: ['Aramex', 'Tunisie Express', 'Rapide Poste']
+    }
+];

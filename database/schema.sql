@@ -24,7 +24,7 @@ CREATE TABLE users (
 CREATE TABLE connected_accounts (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    platform VARCHAR(50) CHECK (platform IN ('facebook', 'instagram', 'whatsapp')),
+    platform VARCHAR(50) CHECK (platform IN ('facebook', 'instagram')), -- Removed WhatsApp
     page_id VARCHAR(255) NOT NULL,
     page_name VARCHAR(255),
     access_token TEXT NOT NULL, -- WARNING: Store encrypted (AES-256)
@@ -74,6 +74,12 @@ CREATE TABLE products (
     stock INT DEFAULT 0,
     primary_image TEXT,
     status VARCHAR(20) CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
+    
+    -- Scheduling Logic
+    publish_mode VARCHAR(20) CHECK (publish_mode IN ('instant', 'scheduled')) DEFAULT 'instant',
+    scheduled_at TIMESTAMP WITH TIME ZONE,
+    publish_status VARCHAR(20) CHECK (publish_status IN ('draft', 'scheduled', 'published')) DEFAULT 'published',
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -132,7 +138,7 @@ CREATE TABLE orders (
 CREATE TABLE conversations (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    platform VARCHAR(50) CHECK (platform IN ('facebook', 'instagram', 'whatsapp')),
+    platform VARCHAR(50) CHECK (platform IN ('facebook', 'instagram')), -- Removed WhatsApp
     customer_id VARCHAR(255) NOT NULL,
     product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     last_message_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -189,6 +195,7 @@ CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
 
 -- Performance Lookups
 CREATE INDEX idx_products_status ON products(status);
+CREATE INDEX idx_products_publish_status ON products(publish_status); -- New Index for scheduler
 CREATE INDEX idx_product_delivery_product_state ON product_delivery(product_id, state_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_messages_conversation ON messages(conversation_id);
@@ -205,7 +212,3 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE connected_accounts ENABLE ROW LEVEL SECURITY;
-
--- Sample RLS Policy (Application user_id must be set in session)
--- CREATE POLICY tenant_isolation_products ON products
---     USING (user_id = current_setting('app.current_user_id')::uuid);

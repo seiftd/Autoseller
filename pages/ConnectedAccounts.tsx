@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { facebookService } from '../services/facebookService';
 import { webhookService } from '../services/webhookService';
-import { SocialAccount, Language, FacebookConfig } from '../types';
+import { SocialAccount, Language } from '../types';
 import { TEXTS } from '../constants';
-import { Facebook, Instagram, MessageCircle, RefreshCw, CheckCircle, XCircle, Settings, Key, AlertTriangle, Zap } from 'lucide-react';
+import { Facebook, Instagram, RefreshCw, XCircle, Settings, Key, AlertTriangle, Zap, ShieldCheck, Check, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -15,6 +15,7 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
   const [fbAppId, setFbAppId] = useState('');
   const [isConfiguring, setIsConfiguring] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const t = TEXTS;
 
   useEffect(() => {
@@ -23,7 +24,6 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
 
   const loadData = () => {
     setAccounts(storageService.getAccounts());
-    // Load config from storage if exists (simulated)
     const storedId = localStorage.getItem('fb_app_id');
     if (storedId) setFbAppId(storedId);
   };
@@ -45,23 +45,15 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
 
     try {
         setLoading(true);
-        // Ensure initialized
         if (!facebookService.isInitialized) await facebookService.init(fbAppId);
-        
-        // Login
         const userToken = await facebookService.login();
-        
-        // Fetch Pages
         const newAccounts = await facebookService.getAccounts(userToken);
         
         if (newAccounts.length === 0) {
             alert("No Facebook Pages found. Please create a Page first.");
         } else {
-            // Merge with existing accounts (WhatsApp etc)
-            const current = storageService.getAccounts().filter(a => a.platform === 'WhatsApp'); // Keep WA
+            const current = storageService.getAccounts().filter(a => a.platform !== 'Facebook' && a.platform !== 'Instagram');
             const updated = [...current, ...newAccounts];
-            
-            // Save
             localStorage.setItem('autoseller_accounts', JSON.stringify(updated));
             setAccounts(updated);
             alert(`Successfully connected ${newAccounts.length} accounts!`);
@@ -89,13 +81,35 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
     switch(platform) {
         case 'Facebook': return <Facebook className="text-[#1877F2]" size={24} />;
         case 'Instagram': return <Instagram className="text-[#E4405F]" size={24} />;
-        case 'WhatsApp': return <MessageCircle className="text-[#25D366]" size={24} />;
         default: return <RefreshCw size={24} />;
     }
   };
 
+  const steps = [
+      {
+          title: "Create Facebook Developer App",
+          content: "Go to developers.facebook.com, create a new app, and select 'Business' as the app type."
+      },
+      {
+          title: "Add Facebook Login for Business",
+          content: "In your app dashboard, add 'Facebook Login for Business' product and configure the settings."
+      },
+      {
+          title: "Add Required Permissions",
+          content: "Request the following permissions: pages_manage_posts, pages_read_engagement, pages_manage_metadata, pages_messaging, instagram_basic, instagram_manage_messages."
+      },
+      {
+          title: "Connect Your Facebook Page",
+          content: "Use the 'Connect' button above to authorize your Facebook Page."
+      },
+      {
+          title: "Link Instagram Business Account",
+          content: "Ensure your Instagram account is switched to 'Business' and linked to your Facebook Page in Page Settings."
+      }
+  ];
+
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-8 animate-fade-in pb-10">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white">{t.connectedAccounts[lang]}</h1>
         <button 
@@ -113,7 +127,7 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                   <Key className="text-yellow-400" /> Facebook App Configuration
               </h3>
               <p className="text-sm text-slate-400 mb-4">
-                  To connect real accounts, you need a Facebook App with <strong>Facebook Login for Business</strong> added.
+                  To connect real accounts, you need a Facebook App ID.
               </p>
               <div className="flex gap-4">
                   <input 
@@ -168,14 +182,12 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                 </div>
                 
                 <div className="w-full pt-4 border-t border-slate-700/50 space-y-2">
-                    {account.platform !== 'WhatsApp' && (
-                        <button
-                            onClick={() => handleSimulateWebhook(account.pageId || '')}
-                            className="w-full py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium flex items-center justify-center gap-2"
-                        >
-                            <Zap size={14} /> Test Auto-Reply
-                        </button>
-                    )}
+                    <button
+                        onClick={() => handleSimulateWebhook(account.pageId || '')}
+                        className="w-full py-2 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-xs font-medium flex items-center justify-center gap-2"
+                    >
+                        <Zap size={14} /> Test Auto-Reply
+                    </button>
 
                     <button 
                         onClick={() => handleDisconnect(account.id)}
@@ -209,15 +221,69 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
         </div>
       </div>
 
-      <div className="mt-8 p-6 bg-blue-900/10 border border-blue-900/30 rounded-2xl">
-          <h3 className="text-blue-200 font-semibold mb-2">Real Integration Guide</h3>
-          <ul className="list-disc list-inside text-blue-200/60 text-sm space-y-2">
-              <li>Enter your Facebook App ID in the settings above.</li>
-              <li>Your Facebook Account must be an Admin of the App (if in Development mode).</li>
-              <li>Click "Connect" to grant permissions for Pages and Instagram.</li>
-              <li>Once connected, creating a product with "Auto-Publish" will post to your real pages.</li>
-              <li>Use "Test Auto-Reply" to simulate how the bot would respond to a comment on that page.</li>
-          </ul>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-12">
+        {/* Connection Guide */}
+        <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold text-white mb-6">How to Connect Your Business Accounts</h2>
+            <div className="space-y-4">
+                {steps.map((step, idx) => (
+                    <div key={idx} className="bg-slate-800/30 border border-slate-700 rounded-xl overflow-hidden">
+                        <button 
+                            onClick={() => setExpandedStep(expandedStep === idx ? null : idx)}
+                            className="w-full flex items-center justify-between p-4 text-left hover:bg-slate-700/30 transition"
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${expandedStep === idx ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                    {idx + 1}
+                                </div>
+                                <span className={`font-medium ${expandedStep === idx ? 'text-white' : 'text-slate-300'}`}>{step.title}</span>
+                            </div>
+                            {expandedStep === idx ? <ChevronUp size={20} className="text-slate-400" /> : <ChevronDown size={20} className="text-slate-400" />}
+                        </button>
+                        {expandedStep === idx && (
+                            <div className="p-4 pt-0 pl-16 text-slate-400 text-sm leading-relaxed border-t border-slate-700/50 bg-slate-900/20">
+                                {step.content}
+                            </div>
+                        )}
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        {/* Permission Transparency */}
+        <div className="lg:col-span-1">
+             <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 p-6 rounded-2xl sticky top-24">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                        <ShieldCheck className="text-green-400" size={24} />
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-white">Permission Transparency</h3>
+                        <p className="text-xs text-green-400 font-medium">100% Secure & Compliant</p>
+                    </div>
+                </div>
+                
+                <p className="text-sm text-slate-300 mb-4">ReplyGenie only requests permissions necessary to automate your business:</p>
+                
+                <ul className="space-y-3 mb-6">
+                    {['Publish & Edit Posts', 'Reply to Comments', 'Send Direct Messages'].map((perm, i) => (
+                        <li key={i} className="flex items-center gap-3 text-sm text-slate-400">
+                            <Check size={16} className="text-blue-500" />
+                            {perm}
+                        </li>
+                    ))}
+                </ul>
+
+                <div className="bg-slate-950/50 p-4 rounded-xl border border-slate-800 text-xs text-slate-500 space-y-2">
+                    <p className="flex items-center gap-2 text-slate-400">
+                        <XCircle size={14} className="text-red-400" /> We do NOT access personal profiles
+                    </p>
+                    <p className="flex items-center gap-2 text-slate-400">
+                        <XCircle size={14} className="text-red-400" /> We do NOT read private messages unrelated to business
+                    </p>
+                </div>
+             </div>
+        </div>
       </div>
     </div>
   );

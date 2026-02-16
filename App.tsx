@@ -10,6 +10,7 @@ import { Inbox } from './pages/Inbox';
 import { ConnectedAccounts } from './pages/ConnectedAccounts';
 import { Settings } from './pages/Settings';
 import { authService } from './services/authService';
+import { schedulerService } from './services/schedulerService';
 import { Language } from './types';
 
 // Protected Route Wrapper with Layout
@@ -36,6 +37,9 @@ const AppContent: React.FC = () => {
     } else {
       document.documentElement.dir = 'ltr';
     }
+    
+    // Start Background Scheduler
+    schedulerService.start();
   }, [lang]);
 
   const handleLogin = () => {

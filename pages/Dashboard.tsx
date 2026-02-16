@@ -4,7 +4,7 @@ import { UserStats, Language } from '../types';
 import { TEXTS } from '../constants';
 import { StatsCard } from '../components/StatsCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShoppingBag, DollarSign, Package, MessageSquare } from 'lucide-react';
+import { ShoppingBag, DollarSign, Package, MessageSquare, Clock, CheckCircle } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -15,7 +15,11 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
   const t = TEXTS;
 
   useEffect(() => {
-    setStats(storageService.getStats());
+    // Basic polling to keep stats fresh with scheduler
+    const load = () => setStats(storageService.getStats());
+    load();
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   if (!stats) return null;
@@ -41,6 +45,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
         </div>
       </div>
 
+      {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard 
           title={t.totalOrders[lang]} 
@@ -54,15 +59,16 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
           icon={DollarSign} 
         />
         <StatsCard 
-          title={t.activeProducts[lang]} 
-          value={stats.activeProducts} 
-          icon={ShoppingBag} 
+          title="Scheduled Posts" 
+          value={stats.scheduledPosts} 
+          icon={Clock} 
+          subtext="Pending Publication"
         />
          <StatsCard 
-          title="Auto Replies" 
-          value={stats.messagesProcessed} 
-          icon={MessageSquare} 
-          subtext="Processed by AI"
+          title="Published" 
+          value={stats.publishedPosts} 
+          icon={CheckCircle} 
+          subtext="Live on Socials"
         />
       </div>
 

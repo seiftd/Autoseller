@@ -16,7 +16,7 @@ erDiagram
     CONNECTED_ACCOUNTS {
         uuid id PK
         uuid user_id FK
-        string platform
+        string platform "facebook | instagram"
         string page_id
         string page_name
         string access_token
@@ -54,6 +54,9 @@ erDiagram
         int stock
         string primary_image
         string status
+        string publish_mode "instant | scheduled"
+        timestamp scheduled_at
+        string publish_status "draft | scheduled | published"
         timestamp created_at
     }
 
@@ -96,7 +99,7 @@ erDiagram
     CONVERSATIONS {
         uuid id PK
         uuid user_id FK
-        string platform
+        string platform "facebook | instagram"
         string customer_id
         uuid product_id FK
         timestamp last_message_at

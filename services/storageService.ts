@@ -12,7 +12,6 @@ const COUNTRIES_KEY = 'autoseller_countries';
 const MOCK_ACCOUNTS: SocialAccount[] = [
   { id: '1', platform: 'Facebook', name: 'Tech Store DZ', connected: true, lastSync: Date.now() },
   { id: '2', platform: 'Instagram', name: '@techstoredz', connected: false, lastSync: 0 },
-  { id: '3', platform: 'WhatsApp', name: '+213 555 123 456', connected: true, lastSync: Date.now() },
 ];
 
 const MOCK_PRODUCTS: Product[] = [
@@ -40,7 +39,9 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['Yalidine'] 
     },
     paymentMethods: ['cod'],
-    publishedTo: ['Facebook']
+    publishedTo: ['Facebook'],
+    publishMode: 'instant',
+    publishStatus: 'published'
   },
   { 
     id: '2', 
@@ -65,7 +66,9 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['Yalidine'] 
     },
     paymentMethods: ['cod'],
-    publishedTo: ['Facebook', 'WhatsApp']
+    publishedTo: ['Facebook'],
+    publishMode: 'instant',
+    publishStatus: 'published'
   },
   { 
     id: '3', 
@@ -87,7 +90,9 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['La Poste'] 
     },
     paymentMethods: ['prepaid'],
-    publishedTo: ['Instagram']
+    publishedTo: ['Instagram'],
+    publishMode: 'instant',
+    publishStatus: 'published'
   }
 ];
 
@@ -145,6 +150,9 @@ export const storageService = {
     else list.unshift(product);
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(list));
   },
+  saveProducts: (products: Product[]) => {
+      localStorage.setItem(PRODUCTS_KEY, JSON.stringify(products));
+  },
   deleteProduct: (id: string) => {
     const list = storageService.getProducts().filter(p => p.id !== id);
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(list));
@@ -186,7 +194,9 @@ export const storageService = {
       activeProducts: products.filter(p => p.active).length,
       connectedAccounts: accounts.filter(a => a.connected).length,
       messagesProcessed: 342, // Mock
-      recentOrders: orders.slice(0, 5)
+      recentOrders: orders.slice(0, 5),
+      scheduledPosts: products.filter(p => p.publishStatus === 'scheduled').length,
+      publishedPosts: products.filter(p => p.publishStatus === 'published').length,
     };
   },
 

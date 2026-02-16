@@ -86,19 +86,9 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                         </div>
                         <button className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-white">Disconnect</button>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-700">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-[#25D366] rounded-lg flex items-center justify-center text-white">
-                                <MessageCircle size={20} />
-                            </div>
-                            <div>
-                                <p className="font-medium text-white">WhatsApp Business</p>
-                                <p className="text-xs text-slate-500">Not Connected</p>
-                            </div>
-                        </div>
-                        <button className="text-xs bg-accent hover:bg-accentHover px-3 py-1.5 rounded-lg text-white">Connect</button>
-                    </div>
+                </div>
+                <div className="mt-4 p-4 bg-blue-900/10 border border-blue-900/30 rounded-xl text-sm text-blue-300">
+                    To manage connections and view detailed guides, please visit the <a href="#/connected-accounts" className="underline font-bold">Connected Accounts</a> page.
                 </div>
             </div>
         )}
@@ -121,7 +111,6 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                                 <h2 className="text-xl font-bold text-white">{country.name}</h2>
                                 <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded uppercase">{country.currency}</span>
                             </div>
-                            {/* In a real app, delete country button would be here */}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

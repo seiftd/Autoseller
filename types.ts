@@ -1,6 +1,6 @@
 export type Language = 'en' | 'fr' | 'ar';
 
-export type Platform = 'Facebook' | 'Instagram' | 'WhatsApp';
+export type Platform = 'Facebook' | 'Instagram';
 
 export type Currency = 'DZD' | 'EUR' | 'USD' | 'MAD' | 'TND';
 
@@ -68,6 +68,11 @@ export interface Product {
   shipping: ShippingConfig;
   paymentMethods: ('cod' | 'prepaid')[];
   publishedTo: Platform[];
+
+  // Scheduling
+  publishMode: 'instant' | 'scheduled';
+  scheduledAt?: number;
+  publishStatus: 'draft' | 'scheduled' | 'published';
 }
 
 export interface Order {
@@ -113,6 +118,8 @@ export interface UserStats {
   connectedAccounts: number;
   messagesProcessed: number;
   recentOrders: Order[];
+  scheduledPosts: number;
+  publishedPosts: number;
 }
 
 export interface Translation {

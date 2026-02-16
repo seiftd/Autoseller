@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
 import { facebookService } from '../services/facebookService';
 import { Product, Language, Country } from '../types';
 import { TEXTS } from '../constants';
-import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap, Calendar, Clock, AlertTriangle } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -13,6 +14,8 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [hasAccount, setHasAccount] = useState(false);
+  const navigate = useNavigate();
   const t = TEXTS;
   
   // Form State
@@ -27,6 +30,11 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const [defaultShipping, setDefaultShipping] = useState(600);
   const [autoPublish, setAutoPublish] = useState(true);
   
+  // Scheduling State
+  const [publishMode, setPublishMode] = useState<'instant' | 'scheduled'>('instant');
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+
   // Publishing State
   const [publishing, setPublishing] = useState(false);
   
@@ -40,11 +48,25 @@ export const Products: React.FC<Props> = ({ lang }) => {
   }, []);
 
   const loadData = () => {
-    setProducts(storageService.getProducts());
+    const prods = storageService.getProducts();
+    setProducts(prods);
     setCountries(storageService.getCountries());
+    const accounts = storageService.getAccounts().filter(a => a.connected);
+    setHasAccount(accounts.length > 0);
   };
 
   const getActiveCountry = () => countries.find(c => c.id === targetCountryId) || countries[0];
+
+  const handleAddClick = () => {
+      if (!hasAccount) {
+          if (confirm("You must connect at least one business account (Facebook or Instagram) before creating products.\n\nGo to Connected Accounts?")) {
+              navigate('/connected-accounts');
+          }
+          return;
+      }
+      resetForm();
+      setShowForm(true);
+  };
 
   const processFiles = async (files: FileList | File[]) => {
     if (productImages.length + files.length > 5) {
@@ -121,6 +143,20 @@ export const Products: React.FC<Props> = ({ lang }) => {
       }
 
       const activeCountry = getActiveCountry();
+      let scheduleTimestamp: number | undefined = undefined;
+
+      if (publishMode === 'scheduled') {
+          if (!scheduledDate || !scheduledTime) {
+              alert("Please select date and time for scheduling.");
+              return;
+          }
+          const dt = new Date(`${scheduledDate}T${scheduledTime}`);
+          if (dt.getTime() <= Date.now()) {
+              alert("Scheduled time must be in the future.");
+              return;
+          }
+          scheduleTimestamp = dt.getTime();
+      }
 
       const newProduct: Product = {
           id: editingId || crypto.randomUUID(),
@@ -130,8 +166,8 @@ export const Products: React.FC<Props> = ({ lang }) => {
           description: desc,
           category,
           hashtags: ['#new', `#${category.toLowerCase()}`],
-          imageUrl: productImages[0], // First image is primary
-          images: productImages, // Store all images
+          imageUrl: productImages[0], 
+          images: productImages,
           active: true,
           targetCountryId: activeCountry.id,
           currency: activeCountry.currency,
@@ -142,12 +178,17 @@ export const Products: React.FC<Props> = ({ lang }) => {
               companies: activeCountry.shippingCompanies
           },
           paymentMethods: ['cod'],
-          publishedTo: [] // Will update after publishing
+          publishedTo: [],
+          publishMode,
+          scheduledAt: scheduleTimestamp,
+          publishStatus: publishMode === 'scheduled' ? 'scheduled' : 'draft' 
       };
       
       let publishedPlatforms: string[] = [];
 
-      if (autoPublish) {
+      // Logic: If Instant and AutoPublish is ON, publish now.
+      // If Scheduled, just save.
+      if (publishMode === 'instant' && autoPublish) {
           setPublishing(true);
           const accounts = storageService.getAccounts().filter(a => a.connected);
           
@@ -165,15 +206,18 @@ export const Products: React.FC<Props> = ({ lang }) => {
                       }
                   }
                   alert(`Published to ${publishedPlatforms.join(' & ')} successfully!`);
+                  newProduct.publishStatus = 'published';
+                  newProduct.publishedTo = publishedPlatforms as any;
               } catch (error) {
                   console.error("Publish Error:", error);
                   alert(`Error publishing: ${error}`);
               }
           }
           setPublishing(false);
+      } else if (publishMode === 'scheduled') {
+          alert(`Product scheduled for ${new Date(scheduleTimestamp!).toLocaleString()}.`);
       }
 
-      newProduct.publishedTo = publishedPlatforms as any;
       storageService.saveProduct(newProduct);
       
       loadData();
@@ -192,7 +236,21 @@ export const Products: React.FC<Props> = ({ lang }) => {
     setShippingType(product.shipping.type);
     setDefaultShipping(product.shipping.defaultCost);
     setProductImages(product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []));
-    setAutoPublish(false);
+    
+    // Set scheduling state if exists
+    if (product.publishMode === 'scheduled' && product.scheduledAt) {
+        setPublishMode('scheduled');
+        const dt = new Date(product.scheduledAt);
+        setScheduledDate(dt.toISOString().split('T')[0]);
+        setScheduledTime(dt.toTimeString().slice(0, 5));
+        setAutoPublish(false);
+    } else {
+        setPublishMode('instant');
+        setScheduledDate('');
+        setScheduledTime('');
+        setAutoPublish(true); // Default to true if re-editing non-scheduled
+    }
+    
     setShowForm(true);
   };
 
@@ -213,6 +271,9 @@ export const Products: React.FC<Props> = ({ lang }) => {
       setDefaultShipping(600);
       setProductImages([]);
       setAutoPublish(true);
+      setPublishMode('instant');
+      setScheduledDate('');
+      setScheduledTime('');
   };
 
   const activeCountry = getActiveCountry();
@@ -226,7 +287,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
             </h1>
             {!showForm && (
                 <button 
-                    onClick={() => { resetForm(); setShowForm(true); }}
+                    onClick={handleAddClick}
                     className="bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium flex items-center gap-2 transition-all shadow-lg shadow-blue-900/20"
                 >
                     <Plus size={18} />
@@ -260,7 +321,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
                     <div className="space-y-4">
                         <label className="block text-sm text-slate-400 mb-1">Product Gallery ({productImages.length}/5)</label>
                         
-                        {/* Main Preview */}
                         <div className="relative aspect-square rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden group">
                             {productImages.length > 0 ? (
                                 <>
@@ -287,7 +347,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             )}
                         </div>
 
-                        {/* Thumbnails & Upload */}
                         <div className="grid grid-cols-4 gap-2">
                              {productImages.slice(1).map((img, idx) => (
                                  <div key={idx} className="relative aspect-square rounded-lg bg-slate-900 border border-slate-700 overflow-hidden group cursor-pointer" onClick={() => setPrimaryImage(idx + 1)}>
@@ -305,7 +364,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                  </div>
                              ))}
                              
-                             {/* Add More Button */}
                              {productImages.length < 5 && (
                                  <div 
                                     onClick={() => document.getElementById('gallery-upload')?.click()}
@@ -340,8 +398,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
 
                     {/* Right Columns: Form Fields */}
                     <div className="lg:col-span-2 space-y-6">
-                        
-                        {/* Country Selector */}
                         <div className="bg-slate-900/50 p-4 rounded-xl border border-blue-900/50 mb-4">
                             <label className="block text-sm text-blue-300 mb-2 font-medium flex items-center gap-2">
                                 <Globe size={14} /> Target Country & Market
@@ -415,29 +471,67 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                         <input type="number" value={defaultShipping} onChange={e=>setDefaultShipping(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
                                     </div>
                                 )}
-                                <div className="mt-3 text-xs text-slate-500">
-                                    Uses {activeCountry.name} carriers: {activeCountry.shippingCompanies.join(', ')}
-                                </div>
                             </div>
 
                             <div className="p-4 bg-blue-900/10 rounded-xl border border-blue-900/30">
-                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Share2 size={16}/> Social Publishing</h3>
-                                <label className="flex items-center gap-3 cursor-pointer p-2 rounded-lg hover:bg-slate-800/50 transition">
-                                    <input 
-                                        type="checkbox" 
-                                        checked={autoPublish} 
-                                        onChange={e=>setAutoPublish(e.target.checked)} 
-                                        disabled={!!editingId} 
-                                        className="w-5 h-5 accent-blue-500 rounded" 
-                                    />
-                                    <div>
-                                        <p className="text-white font-medium">Auto-Publish to Connected Accounts</p>
-                                        <p className="text-xs text-slate-400">
-                                            {productImages.length > 1 ? "Will create a carousel post (Instagram) or Album (Facebook)" : "Single image post"}
-                                        </p>
-                                        <p className="text-[10px] text-blue-300 mt-1 flex items-center gap-1"><Zap size={10} /> Real API Active</p>
+                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Share2 size={16}/> Publishing Schedule</h3>
+                                <div className="space-y-3">
+                                    <div className="flex gap-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input 
+                                                type="radio" 
+                                                checked={publishMode==='instant'} 
+                                                onChange={()=>setPublishMode('instant')} 
+                                                className="accent-blue-500" 
+                                            />
+                                            <span className="text-sm text-slate-300">Publish Now</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input 
+                                                type="radio" 
+                                                checked={publishMode==='scheduled'} 
+                                                onChange={()=>setPublishMode('scheduled')} 
+                                                className="accent-blue-500" 
+                                            />
+                                            <span className="text-sm text-slate-300">Schedule</span>
+                                        </label>
                                     </div>
-                                </label>
+
+                                    {publishMode === 'instant' && (
+                                        <label className="flex items-center gap-2 cursor-pointer pt-2">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={autoPublish} 
+                                                onChange={e=>setAutoPublish(e.target.checked)} 
+                                                className="w-4 h-4 accent-blue-500 rounded" 
+                                            />
+                                            <span className="text-sm text-slate-400">Auto-publish to connected accounts</span>
+                                        </label>
+                                    )}
+
+                                    {publishMode === 'scheduled' && (
+                                        <div className="grid grid-cols-2 gap-2 mt-2">
+                                            <div>
+                                                <label className="text-xs text-slate-500 block mb-1">Date</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={scheduledDate}
+                                                    onChange={e => setScheduledDate(e.target.value)}
+                                                    className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" 
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="text-xs text-slate-500 block mb-1">Time</label>
+                                                <input 
+                                                    type="time" 
+                                                    value={scheduledTime}
+                                                    onChange={e => setScheduledTime(e.target.value)}
+                                                    className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" 
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
@@ -499,11 +593,21 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             </td>
                             <td className="p-4 align-top">
                                 <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-2">
-                                        {p.publishedTo.includes('Facebook') && <Facebook size={16} className="text-blue-500" title="Published on Facebook"/>}
-                                        {p.publishedTo.includes('Instagram') && <div className="w-4 h-4 rounded bg-gradient-to-tr from-yellow-400 to-purple-600" title="Published on Instagram"/>}
-                                        {p.publishedTo.length === 0 && <span className="text-xs text-slate-500 italic">Unpublished</span>}
-                                    </div>
+                                    {p.publishStatus === 'scheduled' ? (
+                                        <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20 w-fit">
+                                            <Clock size={14} />
+                                            <span>
+                                                {p.scheduledAt ? new Date(p.scheduledAt).toLocaleString() : 'Scheduled'}
+                                            </span>
+                                        </div>
+                                    ) : p.publishStatus === 'published' ? (
+                                        <div className="flex items-center gap-2">
+                                            {p.publishedTo.includes('Facebook') && <Facebook size={16} className="text-blue-500" title="Published on Facebook"/>}
+                                            {p.publishedTo.includes('Instagram') && <div className="w-4 h-4 rounded bg-gradient-to-tr from-yellow-400 to-purple-600" title="Published on Instagram"/>}
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-slate-500 italic">Draft</span>
+                                    )}
                                 </div>
                             </td>
                             <td className="p-4 align-top">
@@ -523,7 +627,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             <td colSpan={6} className="p-12 text-center text-slate-500">
                                 <Package className="mx-auto mb-4 opacity-50" size={48} />
                                 <p>No products added yet.</p>
-                                <button onClick={() => setShowForm(true)} className="text-blue-400 hover:underline mt-2">Add your first product</button>
+                                <button onClick={handleAddClick} className="text-blue-400 hover:underline mt-2">Add your first product</button>
                             </td>
                         </tr>
                     )}

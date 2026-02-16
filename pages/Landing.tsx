@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { 
   Bot, ShoppingBag, Zap, TrendingUp, Globe, Check, 
   ArrowRight, MessageCircle, BarChart3, Shield, Truck, 
-  Layers, ChevronRight, Play
+  Layers, ChevronRight, Play, CheckCircle2, ArrowLeft
 } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Language } from '../types';
@@ -17,30 +17,31 @@ export const Landing: React.FC = () => {
     navFeatures: { en: "Features", fr: "Fonctionnalités", ar: "المميزات" },
     navPricing: { en: "Pricing", fr: "Tarifs", ar: "الأسعار" },
     navLogin: { en: "Login", fr: "Connexion", ar: "دخول" },
-    heroTitle: { 
-      en: "Sell Smarter.", 
-      fr: "Vendez Plus Intelligemment.", 
-      ar: "بع بذكاء." 
-    },
-    heroHighlight: {
-      en: "Automate Everything.",
-      fr: "Automatisez Tout.",
-      ar: "أتمت كل شيء."
-    },
-    heroSub: {
-      en: "Connect your business accounts. Publish products. Auto-reply to customers. Manage orders.",
-      fr: "Connectez vos comptes pro. Publiez vos produits. Répondez automatiquement. Gérez vos commandes.",
-      ar: "ربط حساباتك التجارية. نشر المنتجات. الرد التلقائي على العملاء. إدارة الطلبات."
-    },
-    ctaConnect: { en: "Connect Your Business", fr: "Connecter mon Business", ar: "ابدأ الآن" },
-    ctaDemo: { en: "See How It Works", fr: "Voir la Démo", ar: "شاهد كيف يعمل" },
-    stepsTitle: { en: "How It Works", fr: "Comment ça marche", ar: "كيف يعمل" },
-    pricingTitle: { en: "Simple Pricing", fr: "Tarifs Simples", ar: "أسعار بسيطة" },
-    pricingSub: { en: "Start free, upgrade as you grow.", fr: "Commencez gratuit, évoluez selon vos besoins.", ar: "ابدأ مجاناً، ورقي مع نموك." },
-    footerRights: { en: "All rights reserved.", fr: "Tous droits réservés.", ar: "جميع الحقوق محفوظة." }
+    ctaConnect: { en: "Connect Your Business", fr: "Connecter mon Business", ar: "اربط حسابك التجاري" },
+    ctaDemo: { en: "See How It Works", fr: "Voir la Démo", ar: "شاهد طريقة العمل" },
+    stepsTitle: { en: "How It Works", fr: "Comment ça marche", ar: "كيف يعمل النظام" },
+    stepsSub: { en: "Five simple steps to automate your social commerce.", fr: "Cinq étapes simples pour automatiser.", ar: "خمس خطوات بسيطة لأتمتة تجارتك الإلكترونية." },
+    pricingTitle: { en: "Simple Pricing", fr: "Tarifs Simples", ar: "أسعار بسيطة وشفافة" },
+    pricingSub: { en: "Start free, upgrade as you grow.", fr: "Commencez gratuit, évoluez selon vos besoins.", ar: "ابدأ مجاناً، وقم بالترقية مع نمو عملك." },
+    footerRights: { en: "All rights reserved.", fr: "Tous droits réservés.", ar: "جميع الحقوق محفوظة." },
+    
+    // Steps
+    step1: { title: {en:"Connect", ar:"ربط الحسابات"}, desc: {en:"Link Facebook & Instagram", ar:"اربط فيسبوك وإنستغرام"} },
+    step2: { title: {en:"Configure", ar:"إعداد المتجر"}, desc: {en:"Add products & delivery settings", ar:"أضف المنتجات وإعدادات التوصيل"} },
+    step3: { title: {en:"Publish", ar:"النشر التلقائي"}, desc: {en:"Auto-post across all platforms", ar:"نشر تلقائي عبر جميع المنصات"} },
+    step4: { title: {en:"Auto-Reply", ar:"الرد الذكي"}, desc: {en:"AI answers comments & DMs", ar:"الذكاء الاصطناعي يرد على التعليقات"} },
+    step5: { title: {en:"Collect", ar:"جمع الطلبات"}, desc: {en:"Get structured orders instantly", ar:"استلام طلبات منظمة فورياً"} },
+    
+    // Showcase Bullets
+    showcasePoints: {
+      en: ["Auto-publish products", "Smart replies by region", "Auto-calculate shipping", "Organized order collection"],
+      fr: ["Publication automatique", "Réponses intelligentes par région", "Calcul auto livraison", "Collection de commandes"],
+      ar: ["نشر تلقائي للمنتجات", "ردود ذكية حسب الولاية", "حساب تكلفة الشحن تلقائيًا", "جمع الطلبات بشكل منظم"]
+    }
   };
 
   const isRTL = lang === 'ar';
+  const t = TEXTS;
 
   return (
     <div className={`min-h-screen bg-[#020617] text-slate-100 flex flex-col relative overflow-x-hidden selection:bg-blue-500/30 ${isRTL ? 'rtl' : 'ltr'}`} dir={isRTL ? 'rtl' : 'ltr'}>
@@ -88,7 +89,7 @@ export const Landing: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 pt-20 pb-32 px-6">
+      <section className="relative z-10 pt-20 pb-20 px-6">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-900/20 border border-blue-500/30 text-blue-300 text-xs font-semibold uppercase tracking-wider mb-8 animate-fade-in-up">
             <span className="relative flex h-2 w-2">
@@ -99,15 +100,15 @@ export const Landing: React.FC = () => {
           </div>
 
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-tight">
-            <span className="text-white">{content.heroTitle[lang]}</span>
+            <span className="text-white">{t.heroTitle[lang]}</span>
             <br />
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
-              {content.heroHighlight[lang]}
+              {t.heroHighlight[lang]}
             </span>
           </h1>
           
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
-            {content.heroSub[lang]}
+            {t.heroSubtitle[lang]}
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
@@ -116,68 +117,107 @@ export const Landing: React.FC = () => {
               className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 rounded-full font-bold shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group"
             >
               {content.ctaConnect[lang]}
-              <ArrowRight className={`w-5 h-5 transition-transform ${isRTL ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+              {isRTL ? (
+                 <ArrowLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+              ) : (
+                 <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+              )}
             </Link>
             <a href="#demo" className="w-full sm:w-auto px-8 py-4 bg-slate-800/50 hover:bg-slate-800 text-white border border-slate-700 rounded-full font-semibold transition-all backdrop-blur-sm flex items-center justify-center gap-2">
               <Play className="w-4 h-4 fill-current" />
               {content.ctaDemo[lang]}
             </a>
           </div>
+        </div>
+      </section>
 
-          {/* 3D Dashboard Mockup */}
-          <div className="relative max-w-5xl mx-auto perspective-1000">
-            <div className="relative rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden transform rotate-x-12 hover:rotate-x-0 transition-transform duration-700 ease-out origin-bottom">
-              {/* Fake UI Header */}
-              <div className="h-12 bg-slate-800 border-b border-slate-700 flex items-center px-4 gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                  <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                </div>
-                <div className="ml-4 w-64 h-6 rounded-md bg-slate-900/50 border border-slate-700/50" />
-              </div>
-              
-              {/* Fake UI Body */}
-              <div className="grid grid-cols-5 h-[400px] md:h-[600px] bg-slate-950">
-                {/* Sidebar */}
-                <div className="hidden md:block col-span-1 border-r border-slate-800 p-4 space-y-3">
-                  {[1,2,3,4,5].map(i => (
-                    <div key={i} className="h-8 rounded-lg bg-slate-800/50 w-full animate-pulse" style={{animationDelay: `${i*100}ms`}} />
-                  ))}
-                </div>
-                {/* Content */}
-                <div className="col-span-5 md:col-span-4 p-6 overflow-hidden">
-                  <div className="grid grid-cols-3 gap-6 mb-6">
-                    <div className="h-32 rounded-xl bg-slate-800/50 border border-slate-700/50" />
-                    <div className="h-32 rounded-xl bg-blue-900/10 border border-blue-500/20" />
-                    <div className="h-32 rounded-xl bg-slate-800/50 border border-slate-700/50" />
-                  </div>
-                  <div className="h-64 rounded-xl bg-slate-800/30 border border-slate-700/30 mb-6 flex items-end p-6 gap-4">
-                    {[40, 70, 45, 90, 65, 80, 95].map((h, i) => (
-                      <div key={i} className="flex-1 bg-blue-600/20 rounded-t-lg relative group" style={{height: `${h}%`}}>
-                        <div className="absolute inset-0 bg-gradient-to-t from-blue-600/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              {/* Floating Elements */}
-              <div className={`absolute top-20 ${isRTL ? 'left-[-20px]' : 'right-[-20px]'} bg-slate-900/90 backdrop-blur-md border border-slate-700 p-4 rounded-xl shadow-2xl animate-float`}>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <Check className="text-green-400 w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="text-xs text-slate-400">Order Received</div>
-                    <div className="font-bold text-white">+ 4,500 DZD</div>
-                  </div>
-                </div>
-              </div>
+      {/* NEW: Professional Dashboard Showcase Section */}
+      <section className="relative py-24 px-6 overflow-hidden">
+        {/* Background Gradient for Section */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#020617] via-blue-900/10 to-[#020617]" />
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+            <div className="text-center mb-16">
+                 <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                     {t.showcaseSectionTitle[lang]}
+                 </h2>
+                 <div className="h-1 w-24 bg-blue-500 mx-auto rounded-full"></div>
             </div>
-            {/* Glow under dashboard */}
-            <div className="absolute -inset-4 bg-blue-500/20 blur-3xl -z-10 rounded-[3rem]" />
-          </div>
+
+            <div className="bg-slate-900/40 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 md:p-12 flex flex-col-reverse md:flex-row items-center gap-12 shadow-2xl relative group hover:border-blue-500/20 transition-all duration-500">
+                
+                {/* Glowing Particles */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-blue-500/30 transition-all" />
+                <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 rounded-full blur-[100px] pointer-events-none group-hover:bg-purple-500/30 transition-all" />
+
+                {/* Left Side (Text) */}
+                <div className="flex-1 space-y-8 text-center md:text-start relative z-10">
+                    <div>
+                        <h3 className="text-3xl md:text-4xl font-bold text-white mb-4 leading-tight">
+                            {t.showcaseHeadline[lang]}
+                        </h3>
+                        <p className="text-slate-300 text-lg leading-relaxed opacity-90">
+                            {t.showcaseBody[lang]}
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {content.showcasePoints[lang].map((point, i) => (
+                            <div key={i} className="flex items-center gap-3 bg-slate-800/50 p-3 rounded-xl border border-white/5">
+                                <div className="min-w-6 min-h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                                    <CheckCircle2 size={14} className="text-green-400" />
+                                </div>
+                                <span className="text-slate-200 font-medium text-sm">{point}</span>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="pt-4">
+                        <Link 
+                            to="/login"
+                            className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-lg shadow-lg shadow-blue-500/30 hover:scale-105 transition-all duration-300 group/btn"
+                        >
+                            {t.showcaseBtn[lang]}
+                            {isRTL ? (
+                                <ArrowLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />
+                            ) : (
+                                <ArrowRight className="w-5 h-5 group-hover/btn:translate-x-1 transition-transform" />
+                            )}
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Right Side (Image) */}
+                <div className="flex-1 w-full relative perspective-1000">
+                     <div className="relative z-10 transform md:rotate-y-[-10deg] md:group-hover:rotate-y-0 transition-transform duration-700 ease-out">
+                         {/* Using a placeholder that represents the Algerian Dashboard Map concept */}
+                         <div className="relative rounded-2xl overflow-hidden border border-slate-700/50 shadow-2xl animate-float">
+                             <img 
+                                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80" 
+                                alt="ReplyGenie Dashboard Algeria" 
+                                className="w-full h-auto object-cover opacity-80 hover:opacity-100 transition-opacity duration-500"
+                             />
+                             {/* Overlay to simulate the specific UI provided in prompt */}
+                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60"></div>
+                             
+                             {/* Floating Card Mockup - Simulated */}
+                             <div className={`absolute top-10 ${isRTL ? 'left-4' : 'right-4'} bg-slate-800/90 backdrop-blur-md p-4 rounded-xl border border-slate-600 shadow-xl max-w-[200px]`}>
+                                 <div className="flex items-center gap-2 mb-2">
+                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                                     <span className="text-xs text-green-400 font-bold">New Order</span>
+                                 </div>
+                                 <div className="space-y-1">
+                                     <div className="h-2 bg-slate-600 rounded w-3/4"></div>
+                                     <div className="h-2 bg-slate-600 rounded w-1/2"></div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+                     
+                     {/* Decorative Elements behind image */}
+                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-blue-500/10 blur-[80px] -z-10 rounded-full"></div>
+                </div>
+            </div>
         </div>
       </section>
 
@@ -186,7 +226,7 @@ export const Landing: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20">
             <h2 className="text-3xl md:text-5xl font-bold mb-4">{content.stepsTitle[lang]}</h2>
-            <p className="text-slate-400">Five simple steps to automate your social commerce.</p>
+            <p className="text-slate-400">{content.stepsSub[lang]}</p>
           </div>
 
           <div className="relative">
@@ -195,11 +235,11 @@ export const Landing: React.FC = () => {
 
             {/* Steps */}
             {[
-              { icon: MessageCircle, title: "Connect", desc: "Link Facebook & Instagram" },
-              { icon: Truck, title: "Configure", desc: "Add products & delivery settings" },
-              { icon: Globe, title: "Publish", desc: "Auto-post across all platforms" },
-              { icon: Bot, title: "Auto-Reply", desc: "AI answers comments & DMs" },
-              { icon: ShoppingBag, title: "Collect", desc: "Get structured orders instantly" },
+              { icon: MessageCircle, title: content.step1.title[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'], desc: content.step1.desc[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'] },
+              { icon: Truck, title: content.step2.title[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'], desc: content.step2.desc[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'] },
+              { icon: Globe, title: content.step3.title[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'], desc: content.step3.desc[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'] },
+              { icon: Bot, title: content.step4.title[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'], desc: content.step4.desc[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'] },
+              { icon: ShoppingBag, title: content.step5.title[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'], desc: content.step5.desc[lang === 'fr' ? 'fr' : lang === 'ar' ? 'ar' : 'en'] },
             ].map((step, idx) => (
               <div key={idx} className={`relative flex items-center gap-8 mb-16 ${idx % 2 === 0 ? 'md:flex-row-reverse' : ''}`}>
                 <div className="hidden md:block flex-1" />
@@ -272,7 +312,7 @@ export const Landing: React.FC = () => {
             </div>
             <h2 className="text-4xl font-bold mb-6">See the magic in action.</h2>
             <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-              When a customer comments "Price?" on your post, AutoSeller replies instantly in DM with product details, images, and shipping costs.
+              When a customer comments "Price?" on your post, ReplyGenie replies instantly in DM with product details, images, and shipping costs.
             </p>
             <ul className="space-y-4">
               {[
@@ -298,15 +338,15 @@ export const Landing: React.FC = () => {
                   <Bot size={24} />
                 </div>
                 <div>
-                  <div className="font-bold">AutoSeller Bot</div>
+                  <div className="font-bold">ReplyGenie Bot</div>
                   <div className="text-xs opacity-80">Typically replies instantly</div>
                 </div>
               </div>
               <div className="p-6 bg-slate-100 h-[400px] flex flex-col gap-4 overflow-hidden relative">
-                <div className="self-end bg-[#0084FF] text-white p-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm shadow-sm">
+                <div className={`self-end bg-[#0084FF] text-white p-3 rounded-2xl rounded-tr-none max-w-[80%] text-sm shadow-sm ${isRTL ? 'self-start rounded-tr-2xl rounded-tl-none' : ''}`}>
                   Prix livraison Alger svp?
                 </div>
-                <div className="self-start bg-white text-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[90%] text-sm shadow-sm space-y-2 animate-fade-in-up delay-300">
+                <div className={`self-start bg-white text-slate-800 p-4 rounded-2xl rounded-tl-none max-w-[90%] text-sm shadow-sm space-y-2 animate-fade-in-up delay-300 ${isRTL ? 'self-end rounded-tl-2xl rounded-tr-none' : ''}`}>
                   <p className="font-bold text-[#0084FF]">Smart Watch Ultra</p>
                   <div className="h-32 bg-slate-200 rounded-lg mb-2 bg-[url('https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=300&q=80')] bg-cover bg-center"></div>
                   <p>The price is <strong>4,500 DZD</strong>.</p>
@@ -356,15 +396,20 @@ export const Landing: React.FC = () => {
       <section className="py-32 px-6 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 to-purple-900/20 pointer-events-none" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-5xl font-bold mb-8 text-white">Turn Your Social Media Into a <span className="text-blue-500">Sales Machine</span></h2>
+          <h2 className="text-5xl font-bold mb-8 text-white">
+              {lang === 'ar' ? "حوّل تواصلك الاجتماعي إلى" : "Turn Your Social Media Into a"}
+              <span className="text-blue-500 mx-2">
+                  {lang === 'ar' ? "آلة مبيعات" : "Sales Machine"}
+              </span>
+          </h2>
           <p className="text-xl text-slate-400 mb-12">
-            Join 10,000+ merchants automating their business today. No credit card required.
+             {lang === 'ar' ? "انضم إلى أكثر من 10,000 تاجر يقومون بأتمتة أعمالهم اليوم." : "Join 10,000+ merchants automating their business today. No credit card required."}
           </p>
           <Link 
             to="/login"
             className="px-12 py-5 bg-white text-slate-900 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all inline-flex items-center gap-3"
           >
-            Start Now <Zap fill="currentColor" size={20} />
+            {content.ctaConnect[lang]} <Zap fill="currentColor" size={20} />
           </Link>
         </div>
       </section>
@@ -373,10 +418,10 @@ export const Landing: React.FC = () => {
       <footer className="border-t border-slate-800 bg-[#020617] py-12 px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2 font-bold text-xl text-slate-300">
-            <Bot size={24} /> AutoSeller
+            <Bot size={24} /> ReplyGenie
           </div>
           <div className="text-slate-500 text-sm">
-            © 2024 AutoSeller. {content.footerRights[lang]}
+            © 2024 ReplyGenie. {content.footerRights[lang]}
           </div>
           <div className="flex gap-6 text-slate-400">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { storageService } from '../services/storageService';
+import { facebookService } from '../services/facebookService';
 import { Product, Language, Country } from '../types';
 import { TEXTS } from '../constants';
-import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -25,6 +26,9 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const [shippingType, setShippingType] = useState<'free'|'paid'>('paid');
   const [defaultShipping, setDefaultShipping] = useState(600);
   const [autoPublish, setAutoPublish] = useState(true);
+  
+  // Publishing State
+  const [publishing, setPublishing] = useState(false);
   
   // Multi-image state
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -108,7 +112,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
       });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
       if (productImages.length === 0) {
@@ -134,35 +138,43 @@ export const Products: React.FC<Props> = ({ lang }) => {
           shipping: {
               type: shippingType,
               defaultCost: shippingType === 'free' ? 0 : defaultShipping,
-              locationCosts: {}, // Simplified for now
+              locationCosts: {}, 
               companies: activeCountry.shippingCompanies
           },
           paymentMethods: ['cod'],
-          publishedTo: autoPublish ? ['Facebook', 'Instagram'] : (editingId ? products.find(p=>p.id===editingId)?.publishedTo || [] : [])
+          publishedTo: [] // Will update after publishing
       };
       
-      storageService.saveProduct(newProduct);
-      
+      let publishedPlatforms: string[] = [];
+
       if (autoPublish) {
-          // Simulate Social Media Post Structure
-          const postType = productImages.length > 1 ? "Carousel/Multi-Image Post" : "Single Image Post";
-          const postContent = `
-[${postType} Attached - ${productImages.length} Images]
-🔥 ${newProduct.name}
-
-${newProduct.description}
-
-Price: ${newProduct.price} ${newProduct.currency}
-Delivery: ${newProduct.shipping.type === 'free' ? 'FREE' : `Starts from ${newProduct.shipping.defaultCost} ${newProduct.currency}`}
-Available in: ${activeCountry.name}
-
-Payment: Cash on delivery
-
-${newProduct.hashtags.join(' ')}
-          `;
-          console.log("PUBLISHING TO SOCIALS:", postContent);
-          alert(`Product Published to Facebook & Instagram! \n\nType: ${postType}\nCheck console for preview.`);
+          setPublishing(true);
+          const accounts = storageService.getAccounts().filter(a => a.connected);
+          
+          if (accounts.length === 0) {
+              alert("No connected accounts found. Product saved but not published.");
+          } else {
+              try {
+                  for (const account of accounts) {
+                      if (account.platform === 'Facebook') {
+                          await facebookService.publishToFacebook(account, newProduct);
+                          publishedPlatforms.push('Facebook');
+                      } else if (account.platform === 'Instagram') {
+                          await facebookService.publishToInstagram(account, newProduct);
+                          publishedPlatforms.push('Instagram');
+                      }
+                  }
+                  alert(`Published to ${publishedPlatforms.join(' & ')} successfully!`);
+              } catch (error) {
+                  console.error("Publish Error:", error);
+                  alert(`Error publishing: ${error}`);
+              }
+          }
+          setPublishing(false);
       }
+
+      newProduct.publishedTo = publishedPlatforms as any;
+      storageService.saveProduct(newProduct);
       
       loadData();
       setShowForm(false);
@@ -201,7 +213,6 @@ ${newProduct.hashtags.join(' ')}
       setDefaultShipping(600);
       setProductImages([]);
       setAutoPublish(true);
-      // Reset country to first one or keep current selection? Keeping current for batch entry workflow
   };
 
   const activeCountry = getActiveCountry();
@@ -226,7 +237,15 @@ ${newProduct.hashtags.join(' ')}
 
         {/* Add/Edit Product Form */}
         {showForm && (
-            <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl animate-fade-in-up">
+            <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl animate-fade-in-up relative">
+                {publishing && (
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-2xl">
+                        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                        <p className="text-white font-bold text-lg">Publishing to Social Media...</p>
+                        <p className="text-slate-400 text-sm">Uploading images and creating posts</p>
+                    </div>
+                )}
+
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-bold text-white">
                         {editingId ? 'Edit Product' : 'New Product Details'}
@@ -416,6 +435,7 @@ ${newProduct.hashtags.join(' ')}
                                         <p className="text-xs text-slate-400">
                                             {productImages.length > 1 ? "Will create a carousel post (Instagram) or Album (Facebook)" : "Single image post"}
                                         </p>
+                                        <p className="text-[10px] text-blue-300 mt-1 flex items-center gap-1"><Zap size={10} /> Real API Active</p>
                                     </div>
                                 </label>
                             </div>

@@ -15,14 +15,19 @@ import {
 
 export const TEXTS: Translation = {
   heroTitle: {
-    en: "Social Commerce Automation",
-    fr: "Automatisation du Commerce Social",
-    ar: "أتمتة التجارة الاجتماعية"
+    en: "Sell Smarter.",
+    fr: "Vendez Plus Intelligemment.",
+    ar: "بع بذكاء."
+  },
+  heroHighlight: {
+    en: "Automate Everything.",
+    fr: "Automatisez Tout.",
+    ar: "أتمت كل شيء."
   },
   heroSubtitle: {
-    en: "One platform to manage Facebook, Instagram & WhatsApp. Auto-publish products and auto-reply to customers.",
-    fr: "Une seule plateforme pour gérer Facebook, Instagram et WhatsApp. Publiez automatiquement et répondez aux clients.",
-    ar: "منصة واحدة لإدارة فيسبوك وإنستغرام وواتساب. نشر المنتجات والرد على العملاء تلقائيًا."
+    en: "Connect your business accounts. Publish products. Auto-reply to customers. Manage orders.",
+    fr: "Connectez vos comptes pro. Publiez vos produits. Répondez automatiquement. Gérez vos commandes.",
+    ar: "اربط حساباتك التجارية، انشر منتجاتك تلقائيًا، ودع ReplyGenie يرد على عملائك ويجمع طلباتك نيابةً عنك."
   },
   ctaStart: {
     en: "Start Free Trial",
@@ -32,7 +37,7 @@ export const TEXTS: Translation = {
   dashboard: {
     en: "Overview",
     fr: "Vue d'ensemble",
-    ar: "نظرة عامة"
+    ar: "لوحة التحكم"
   },
   products: {
     en: "Products",
@@ -47,7 +52,7 @@ export const TEXTS: Translation = {
   inbox: {
     en: "Inbox",
     fr: "Boîte de réception",
-    ar: "الرسائل"
+    ar: "صندوق الوارد"
   },
   connectedAccounts: {
     en: "Connected Accounts",
@@ -72,17 +77,17 @@ export const TEXTS: Translation = {
   logout: {
     en: "Logout",
     fr: "Déconnexion",
-    ar: "خروج"
+    ar: "تسجيل الخروج"
   },
   connectBtn: {
     en: "Connect",
     fr: "Connecter",
-    ar: "ربط"
+    ar: "ربط الحساب"
   },
   disconnectBtn: {
     en: "Disconnect",
     fr: "Déconnecter",
-    ar: "فصل"
+    ar: "فصل الحساب"
   },
   simulatorTitle: {
     en: "Auto-Reply Simulator",
@@ -92,22 +97,22 @@ export const TEXTS: Translation = {
   simulatorDesc: {
     en: "Test how your bot responds to comments and messages across platforms.",
     fr: "Testez comment votre bot répond aux commentaires et messages.",
-    ar: "اختبر كيف يرد البوت على التعليقات والرسائل عبر المنصات."
+    ar: "اختبر دقة ردود البوت الذكي على التعليقات والرسائل قبل تفعيلها."
   },
   addProduct: {
     en: "Add Product",
     fr: "Ajouter produit",
-    ar: "إضافة منتج"
+    ar: "إضافة منتج جديد"
   },
   publish: {
     en: "Publish to Socials",
     fr: "Publier sur les réseaux",
-    ar: "نشر على التواصل الاجتماعي"
+    ar: "نشر على المنصات"
   },
   save: {
     en: "Save",
     fr: "Enregistrer",
-    ar: "حفظ"
+    ar: "حفظ التغييرات"
   },
   loginTitle: {
     en: "Login",
@@ -127,7 +132,7 @@ export const TEXTS: Translation = {
   loginBtn: {
     en: "Sign In",
     fr: "Se connecter",
-    ar: "دخول"
+    ar: "دخول آمن"
   },
   totalOrders: {
     en: "Total Orders",
@@ -147,7 +152,7 @@ export const TEXTS: Translation = {
   recentOrders: {
     en: "Recent Orders",
     fr: "Commandes Récentes",
-    ar: "الطلبات الأخيرة"
+    ar: "أحدث الطلبات"
   },
   connectTitle: {
     en: "Platform Connections",
@@ -183,6 +188,27 @@ export const TEXTS: Translation = {
       en: "Countries & Delivery",
       fr: "Pays & Livraison",
       ar: "الدول والتوصيل"
+  },
+  // Showcase Section Translations
+  showcaseSectionTitle: {
+    en: "How ReplyGenie Works in Algeria",
+    fr: "Comment ReplyGenie fonctionne en Algérie",
+    ar: "كيف يعمل ReplyGenie في الجزائر"
+  },
+  showcaseHeadline: {
+    en: "Turn your page into a smart sales machine",
+    fr: "Transformez votre page en machine de vente",
+    ar: "حوّل صفحتك إلى آلة مبيعات ذكية"
+  },
+  showcaseBody: {
+    en: "ReplyGenie connects your Facebook & Instagram business accounts, auto-publishes products, replies to customers based on region & shipping cost, and collects orders without your intervention.",
+    fr: "ReplyGenie connecte vos comptes Facebook et Instagram, publie automatiquement, répond selon la région et collecte les commandes sans intervention.",
+    ar: "يقوم ReplyGenie بربط حساباتك التجارية على فيسبوك وإنستغرام، وينشر منتجاتك تلقائيًا، ويرد على العملاء حسب الولاية وسعر الشحن، ويجمع الطلبات بدون أي تدخل منك."
+  },
+  showcaseBtn: {
+    en: "Start Now for Free",
+    fr: "Commencez Gratuitement",
+    ar: "ابدأ الآن مجانًا"
   }
 };
 

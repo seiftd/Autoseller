@@ -11,6 +11,15 @@ export interface SocialAccount {
   connected: boolean;
   avatarUrl?: string;
   lastSync: number;
+  // Facebook Specifics
+  accessToken?: string; // Page Access Token
+  pageId?: string;
+  instagramId?: string; // Linked IG Business ID
+}
+
+export interface FacebookConfig {
+  appId: string;
+  apiVersion: string;
 }
 
 export interface Region {

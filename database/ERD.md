@@ -57,7 +57,26 @@ erDiagram
         string publish_mode "instant | scheduled"
         timestamp scheduled_at
         string publish_status "draft | scheduled | published"
+        boolean is_recurring
+        int recurrence_interval
+        timestamp last_published_at
+        timestamp next_publish_at
         timestamp created_at
+    }
+
+    PRODUCT_PUBLISH_TARGETS {
+        uuid product_id PK, FK
+        uuid account_id PK, FK
+    }
+
+    PUBLISH_LOGS {
+        uuid id PK
+        uuid product_id FK
+        uuid account_id FK
+        string publish_type
+        string status
+        timestamp published_at
+        string error_message
     }
 
     PRODUCT_IMAGES {
@@ -145,6 +164,11 @@ erDiagram
     PRODUCTS ||--o{ PRODUCT_DELIVERY : has
     PRODUCTS ||--o{ PRODUCT_PAYMENT_METHODS : accepts
     PRODUCTS ||--o{ ORDERS : generates
+    PRODUCTS ||--o{ PRODUCT_PUBLISH_TARGETS : targets
+    PRODUCTS ||--o{ PUBLISH_LOGS : logs
+    
+    CONNECTED_ACCOUNTS ||--o{ PRODUCT_PUBLISH_TARGETS : targeted_by
+    CONNECTED_ACCOUNTS ||--o{ PUBLISH_LOGS : logged_in
     
     CONVERSATIONS ||--o{ MESSAGES : contains
     

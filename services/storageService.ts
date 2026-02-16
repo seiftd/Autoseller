@@ -1,4 +1,4 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog } from '../types';
 import { DEFAULT_COUNTRIES } from '../constants';
 
 const PRODUCTS_KEY = 'autoseller_products';
@@ -7,6 +7,7 @@ const ACCOUNTS_KEY = 'autoseller_accounts';
 const CONVERSATIONS_KEY = 'autoseller_conversations';
 const SETTINGS_KEY = 'autoseller_settings';
 const COUNTRIES_KEY = 'autoseller_countries';
+const PUBLISH_LOGS_KEY = 'autoseller_publish_logs';
 
 // Mock Data Initialization
 const MOCK_ACCOUNTS: SocialAccount[] = [
@@ -39,9 +40,14 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['Yalidine'] 
     },
     paymentMethods: ['cod'],
+    targetAccountIds: ['1'],
     publishedTo: ['Facebook'],
     publishMode: 'instant',
-    publishStatus: 'published'
+    publishStatus: 'published',
+    isRecurring: true,
+    recurrenceInterval: 7,
+    lastPublishedAt: Date.now() - 86400000,
+    nextPublishAt: Date.now() + (6 * 86400000)
   },
   { 
     id: '2', 
@@ -66,9 +72,12 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['Yalidine'] 
     },
     paymentMethods: ['cod'],
+    targetAccountIds: ['1'],
     publishedTo: ['Facebook'],
     publishMode: 'instant',
-    publishStatus: 'published'
+    publishStatus: 'published',
+    isRecurring: false,
+    recurrenceInterval: 7
   },
   { 
     id: '3', 
@@ -90,9 +99,12 @@ const MOCK_PRODUCTS: Product[] = [
         companies: ['La Poste'] 
     },
     paymentMethods: ['prepaid'],
+    targetAccountIds: [],
     publishedTo: ['Instagram'],
     publishMode: 'instant',
-    publishStatus: 'published'
+    publishStatus: 'published',
+    isRecurring: false,
+    recurrenceInterval: 7
   }
 ];
 
@@ -182,21 +194,37 @@ export const storageService = {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   },
 
+  // PUBLISH LOGS
+  getPublishLogs: (): PublishLog[] => {
+      const data = localStorage.getItem(PUBLISH_LOGS_KEY);
+      return data ? JSON.parse(data) : [];
+  },
+  addPublishLog: (log: PublishLog) => {
+      const list = storageService.getPublishLogs();
+      list.unshift(log);
+      // Keep only last 100 logs
+      if (list.length > 100) list.pop();
+      localStorage.setItem(PUBLISH_LOGS_KEY, JSON.stringify(list));
+  },
+
   // STATS
   getStats: (): UserStats => {
     const orders = storageService.getOrders();
     const products = storageService.getProducts();
     const accounts = storageService.getAccounts();
+    const logs = storageService.getPublishLogs();
     
     return {
       totalOrders: orders.length,
-      revenue: orders.reduce((sum, o) => sum + o.total, 0), // Note: Mixing currencies in sum. Should separate in real app.
+      revenue: orders.reduce((sum, o) => sum + o.total, 0),
       activeProducts: products.filter(p => p.active).length,
       connectedAccounts: accounts.filter(a => a.connected).length,
       messagesProcessed: 342, // Mock
       recentOrders: orders.slice(0, 5),
       scheduledPosts: products.filter(p => p.publishStatus === 'scheduled').length,
       publishedPosts: products.filter(p => p.publishStatus === 'published').length,
+      recurringActive: products.filter(p => p.isRecurring && p.active).length,
+      totalReposts: logs.filter(l => l.publishType === 'recurring' && l.status === 'success').length
     };
   },
 

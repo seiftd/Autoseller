@@ -67,12 +67,34 @@ export interface Product {
 
   shipping: ShippingConfig;
   paymentMethods: ('cod' | 'prepaid')[];
-  publishedTo: Platform[];
+  
+  // Publishing Targets
+  targetAccountIds: string[]; // IDs of connected_accounts
+  publishedTo: Platform[]; // Historical kept for display
 
-  // Scheduling
+  // Scheduling & Recurrence
   publishMode: 'instant' | 'scheduled';
-  scheduledAt?: number;
   publishStatus: 'draft' | 'scheduled' | 'published';
+  scheduledAt?: number;
+  
+  // Recurring Logic
+  isRecurring: boolean;
+  recurrenceInterval: number; // in days
+  lastPublishedAt?: number;
+  nextPublishAt?: number; // timestamp for next auto-repost
+}
+
+export interface PublishLog {
+  id: string;
+  productId: string;
+  productName: string;
+  accountId: string;
+  accountName: string;
+  platform: Platform;
+  publishType: 'instant' | 'scheduled' | 'recurring';
+  status: 'success' | 'failed';
+  publishedAt: number;
+  errorMessage?: string;
 }
 
 export interface Order {
@@ -120,6 +142,10 @@ export interface UserStats {
   recentOrders: Order[];
   scheduledPosts: number;
   publishedPosts: number;
+  
+  // New Analytics
+  recurringActive: number;
+  totalReposts: number;
 }
 
 export interface Translation {

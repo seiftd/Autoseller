@@ -2,9 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
 import { facebookService } from '../services/facebookService';
-import { Product, Language, Country } from '../types';
+import { Product, Language, Country, SocialAccount } from '../types';
 import { TEXTS } from '../constants';
-import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Instagram, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap, Calendar, Clock, AlertTriangle, Repeat, Eye, Smartphone, MoreHorizontal, Heart, MessageCircle, Send } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -13,7 +13,9 @@ interface Props {
 export const Products: React.FC<Props> = ({ lang }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<SocialAccount[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [hasAccount, setHasAccount] = useState(false);
   const navigate = useNavigate();
   const t = TEXTS;
@@ -28,15 +30,21 @@ export const Products: React.FC<Props> = ({ lang }) => {
   const [category, setCategory] = useState('Electronics');
   const [shippingType, setShippingType] = useState<'free'|'paid'>('paid');
   const [defaultShipping, setDefaultShipping] = useState(600);
-  const [autoPublish, setAutoPublish] = useState(true);
   
-  // Scheduling State
+  // Publishing State
+  const [targetAccountIds, setTargetAccountIds] = useState<string[]>([]);
+  const [autoPublish, setAutoPublish] = useState(true);
   const [publishMode, setPublishMode] = useState<'instant' | 'scheduled'>('instant');
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
+  
+  // Recurring State
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState(7);
 
-  // Publishing State
+  // System State
   const [publishing, setPublishing] = useState(false);
+  const [previewPlatform, setPreviewPlatform] = useState<'Facebook' | 'Instagram'>('Facebook');
   
   // Multi-image state
   const [productImages, setProductImages] = useState<string[]>([]);
@@ -52,6 +60,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
     setProducts(prods);
     setCountries(storageService.getCountries());
     const accounts = storageService.getAccounts().filter(a => a.connected);
+    setConnectedAccounts(accounts);
     setHasAccount(accounts.length > 0);
   };
 
@@ -65,7 +74,13 @@ export const Products: React.FC<Props> = ({ lang }) => {
           return;
       }
       resetForm();
+      // Auto-select all accounts by default
+      setTargetAccountIds(connectedAccounts.map(a => a.id));
       setShowForm(true);
+  };
+
+  const toggleTargetAccount = (id: string) => {
+      setTargetAccountIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
   const processFiles = async (files: FileList | File[]) => {
@@ -88,7 +103,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
             continue;
         }
 
-        // Simulate upload delay
         await new Promise(r => setTimeout(r, 500));
         
         const reader = new FileReader();
@@ -134,31 +148,37 @@ export const Products: React.FC<Props> = ({ lang }) => {
       });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-      e.preventDefault();
-      
-      if (productImages.length === 0) {
-          alert("Please upload at least one image.");
-          return;
-      }
-
+  const constructProductObject = (): Product => {
       const activeCountry = getActiveCountry();
       let scheduleTimestamp: number | undefined = undefined;
 
       if (publishMode === 'scheduled') {
-          if (!scheduledDate || !scheduledTime) {
-              alert("Please select date and time for scheduling.");
-              return;
-          }
           const dt = new Date(`${scheduledDate}T${scheduledTime}`);
-          if (dt.getTime() <= Date.now()) {
-              alert("Scheduled time must be in the future.");
-              return;
-          }
           scheduleTimestamp = dt.getTime();
       }
 
-      const newProduct: Product = {
+      // Calculate next publish for recurrence
+      let nextPublish: number | undefined = undefined;
+      if (isRecurring) {
+          const baseTime = publishMode === 'scheduled' ? scheduleTimestamp! : Date.now();
+          // If instant, next is now + interval. If scheduled, next is scheduled + interval (handled in scheduler mostly, but initial logic here)
+          // Actually, if instant & recurring, we publish now, then set next = now + interval. 
+          // If scheduled & recurring, we set next = scheduled.
+          if (publishMode === 'instant') {
+               const d = new Date();
+               d.setDate(d.getDate() + recurrenceInterval);
+               nextPublish = d.getTime();
+          } else {
+               // First run is scheduledAt. Scheduler handles the next calculation after run.
+               nextPublish = scheduleTimestamp; 
+          }
+      } else if (publishMode === 'scheduled') {
+          // Just one time
+          // nextPublish used by scheduler for both scheduled/recurring logic in updated schema
+          // but let's stick to using scheduledAt for one-time and nextPublishAt for recurring
+      }
+
+      return {
           id: editingId || crypto.randomUUID(),
           name,
           price: Number(price),
@@ -178,50 +198,68 @@ export const Products: React.FC<Props> = ({ lang }) => {
               companies: activeCountry.shippingCompanies
           },
           paymentMethods: ['cod'],
-          publishedTo: [],
+          targetAccountIds,
+          publishedTo: [], // will be filled on publish
           publishMode,
           scheduledAt: scheduleTimestamp,
-          publishStatus: publishMode === 'scheduled' ? 'scheduled' : 'draft' 
+          publishStatus: publishMode === 'scheduled' ? 'scheduled' : 'draft',
+          isRecurring,
+          recurrenceInterval,
+          nextPublishAt: isRecurring && publishMode === 'scheduled' ? scheduleTimestamp : (isRecurring ? Date.now() + (recurrenceInterval * 86400000) : undefined)
       };
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
       
+      if (productImages.length === 0) {
+          alert("Please upload at least one image.");
+          return;
+      }
+      if (targetAccountIds.length === 0) {
+          alert("Please select at least one account to publish to.");
+          return;
+      }
+      if (publishMode === 'scheduled' && (!scheduledDate || !scheduledTime)) {
+          alert("Please select date and time.");
+          return;
+      }
+
+      const newProduct = constructProductObject();
       let publishedPlatforms: string[] = [];
 
       // Logic: If Instant and AutoPublish is ON, publish now.
-      // If Scheduled, just save.
       if (publishMode === 'instant' && autoPublish) {
           setPublishing(true);
-          const accounts = storageService.getAccounts().filter(a => a.connected);
+          const accountsToPublish = connectedAccounts.filter(a => targetAccountIds.includes(a.id));
           
-          if (accounts.length === 0) {
-              alert("No connected accounts found. Product saved but not published.");
-          } else {
-              try {
-                  for (const account of accounts) {
-                      if (account.platform === 'Facebook') {
-                          await facebookService.publishToFacebook(account, newProduct);
-                          publishedPlatforms.push('Facebook');
-                      } else if (account.platform === 'Instagram') {
-                          await facebookService.publishToInstagram(account, newProduct);
-                          publishedPlatforms.push('Instagram');
-                      }
+          try {
+              for (const account of accountsToPublish) {
+                  if (account.platform === 'Facebook') {
+                      await facebookService.publishToFacebook(account, newProduct);
+                      publishedPlatforms.push('Facebook');
+                  } else if (account.platform === 'Instagram') {
+                      await facebookService.publishToInstagram(account, newProduct);
+                      publishedPlatforms.push('Instagram');
                   }
-                  alert(`Published to ${publishedPlatforms.join(' & ')} successfully!`);
-                  newProduct.publishStatus = 'published';
-                  newProduct.publishedTo = publishedPlatforms as any;
-              } catch (error) {
-                  console.error("Publish Error:", error);
-                  alert(`Error publishing: ${error}`);
               }
+              alert(`Published to ${publishedPlatforms.join(' & ')} successfully!`);
+              newProduct.publishStatus = 'published';
+              newProduct.publishedTo = publishedPlatforms as any;
+              newProduct.lastPublishedAt = Date.now();
+          } catch (error) {
+              console.error("Publish Error:", error);
+              alert(`Error publishing: ${error}`);
           }
           setPublishing(false);
       } else if (publishMode === 'scheduled') {
-          alert(`Product scheduled for ${new Date(scheduleTimestamp!).toLocaleString()}.`);
+          alert(`Product scheduled for ${new Date(newProduct.scheduledAt!).toLocaleString()}.`);
       }
 
       storageService.saveProduct(newProduct);
-      
       loadData();
       setShowForm(false);
+      setShowPreview(false);
       resetForm();
   };
 
@@ -236,7 +274,12 @@ export const Products: React.FC<Props> = ({ lang }) => {
     setShippingType(product.shipping.type);
     setDefaultShipping(product.shipping.defaultCost);
     setProductImages(product.images && product.images.length > 0 ? product.images : (product.imageUrl ? [product.imageUrl] : []));
+    setTargetAccountIds(product.targetAccountIds || []);
     
+    // Recurrence
+    setIsRecurring(product.isRecurring || false);
+    setRecurrenceInterval(product.recurrenceInterval || 7);
+
     // Set scheduling state if exists
     if (product.publishMode === 'scheduled' && product.scheduledAt) {
         setPublishMode('scheduled');
@@ -248,7 +291,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
         setPublishMode('instant');
         setScheduledDate('');
         setScheduledTime('');
-        setAutoPublish(true); // Default to true if re-editing non-scheduled
+        setAutoPublish(true);
     }
     
     setShowForm(true);
@@ -274,9 +317,137 @@ export const Products: React.FC<Props> = ({ lang }) => {
       setPublishMode('instant');
       setScheduledDate('');
       setScheduledTime('');
+      setTargetAccountIds([]);
+      setIsRecurring(false);
+      setRecurrenceInterval(7);
   };
 
   const activeCountry = getActiveCountry();
+
+  // Preview Modal Component
+  const PreviewModal = () => {
+      if (!showPreview) return null;
+      
+      const currency = activeCountry.currency;
+      
+      return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-white text-slate-900 w-full max-w-4xl rounded-3xl overflow-hidden flex flex-col md:flex-row shadow-2xl animate-fade-in-up max-h-[90vh]">
+                  {/* Controls Side */}
+                  <div className="w-full md:w-1/3 bg-slate-100 p-6 flex flex-col border-r border-slate-200 overflow-y-auto">
+                      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                          <Eye size={20} className="text-blue-600"/> Post Preview
+                      </h3>
+                      
+                      <div className="space-y-4 mb-8">
+                          <label className="text-sm font-semibold text-slate-600 uppercase tracking-wider">Select Platform</label>
+                          <div className="flex bg-slate-200 p-1 rounded-xl">
+                              <button 
+                                  onClick={() => setPreviewPlatform('Facebook')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${previewPlatform === 'Facebook' ? 'bg-white shadow text-[#1877F2]' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                  <Facebook size={18}/> Facebook
+                              </button>
+                              <button 
+                                  onClick={() => setPreviewPlatform('Instagram')}
+                                  className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${previewPlatform === 'Instagram' ? 'bg-white shadow text-[#E4405F]' : 'text-slate-500 hover:text-slate-700'}`}
+                              >
+                                  <Instagram size={18}/> Instagram
+                              </button>
+                          </div>
+                      </div>
+
+                      <div className="mt-auto space-y-3">
+                          <button 
+                              onClick={() => setShowPreview(false)}
+                              className="w-full py-3 bg-white border border-slate-300 rounded-xl text-slate-600 font-bold hover:bg-slate-50 transition"
+                          >
+                              Edit Details
+                          </button>
+                          <button 
+                              onClick={() => handleSubmit()}
+                              className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200"
+                          >
+                              Confirm & Schedule
+                          </button>
+                      </div>
+                  </div>
+
+                  {/* Preview Side */}
+                  <div className="w-full md:w-2/3 bg-slate-200 p-8 overflow-y-auto flex justify-center items-center">
+                      {/* Phone Container */}
+                      <div className="bg-white w-[375px] rounded-[3rem] border-[8px] border-slate-900 shadow-xl overflow-hidden relative">
+                           {/* Status Bar */}
+                           <div className="h-7 bg-white flex justify-between items-center px-6 text-[10px] font-bold text-black pt-2">
+                               <span>9:41</span>
+                               <div className="flex gap-1">
+                                   <div className="w-3 h-3 bg-black rounded-full"></div>
+                               </div>
+                           </div>
+                           
+                           {/* App Header */}
+                           <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-400 to-indigo-500"></div>
+                                    <span className="font-semibold text-sm">Tech Store DZ</span>
+                                </div>
+                                <MoreHorizontal size={20} className="text-slate-400"/>
+                           </div>
+
+                           {/* Content */}
+                           <div>
+                                <div className="aspect-square bg-slate-100 relative">
+                                    {productImages.length > 0 ? (
+                                        <img src={productImages[0]} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">No Image</div>
+                                    )}
+                                    {productImages.length > 1 && (
+                                        <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                                            1/{productImages.length}
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Actions */}
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <div className="flex gap-4 text-slate-800">
+                                        <Heart size={24} />
+                                        <MessageCircle size={24} />
+                                        <Send size={24} />
+                                    </div>
+                                    <div className="text-slate-800"><Share2 size={24} /></div>
+                                </div>
+
+                                {/* Caption */}
+                                <div className="px-4 pb-6 text-sm">
+                                    <p className="font-bold mb-1">1,234 likes</p>
+                                    <p className="leading-normal">
+                                        <span className="font-bold mr-2">Tech Store DZ</span>
+                                        {name}
+                                        <br/><br/>
+                                        {desc}
+                                        <br/><br/>
+                                        🔥 Price: <strong>{price} {currency}</strong>
+                                        <br/>
+                                        🚚 Shipping: {shippingType === 'free' ? 'FREE' : `Starts at ${defaultShipping} ${currency}`}
+                                        <br/><br/>
+                                        <span className="text-blue-900">
+                                            #new #{category.toLowerCase()} #techstore
+                                        </span>
+                                    </p>
+                                    <p className="text-slate-400 text-xs mt-2 uppercase">2 minutes ago</p>
+                                </div>
+                           </div>
+                           
+                           {/* Home Bar */}
+                           <div className="h-1 w-1/3 bg-slate-900 mx-auto rounded-full mb-2 mt-4"></div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      );
+  };
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -295,6 +466,8 @@ export const Products: React.FC<Props> = ({ lang }) => {
                 </button>
             )}
         </div>
+
+        <PreviewModal />
 
         {/* Add/Edit Product Form */}
         {showForm && (
@@ -316,11 +489,10 @@ export const Products: React.FC<Props> = ({ lang }) => {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <form onSubmit={(e) => { e.preventDefault(); setShowPreview(true); }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column: Multi-Image Gallery */}
                     <div className="space-y-4">
                         <label className="block text-sm text-slate-400 mb-1">Product Gallery ({productImages.length}/5)</label>
-                        
                         <div className="relative aspect-square rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden group">
                             {productImages.length > 0 ? (
                                 <>
@@ -340,13 +512,13 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                     </div>
                                 </>
                             ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
+                                <div className="w-full h-full flex items-center justify-center text-slate-600">
                                     <ImageIcon size={48} className="mb-2 opacity-50" />
                                     <span className="text-sm">No image selected</span>
                                 </div>
                             )}
                         </div>
-
+                        {/* Thumbnails code same as before... */}
                         <div className="grid grid-cols-4 gap-2">
                              {productImages.slice(1).map((img, idx) => (
                                  <div key={idx} className="relative aspect-square rounded-lg bg-slate-900 border border-slate-700 overflow-hidden group cursor-pointer" onClick={() => setPrimaryImage(idx + 1)}>
@@ -363,7 +535,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                      </div>
                                  </div>
                              ))}
-                             
                              {productImages.length < 5 && (
                                  <div 
                                     onClick={() => document.getElementById('gallery-upload')?.click()}
@@ -398,33 +569,37 @@ export const Products: React.FC<Props> = ({ lang }) => {
 
                     {/* Right Columns: Form Fields */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-slate-900/50 p-4 rounded-xl border border-blue-900/50 mb-4">
+                        {/* Target Accounts Selection */}
+                        <div className="bg-slate-900/50 p-4 rounded-xl border border-blue-900/50">
                             <label className="block text-sm text-blue-300 mb-2 font-medium flex items-center gap-2">
-                                <Globe size={14} /> Target Country & Market
+                                <Share2 size={14} /> Publish Targets
                             </label>
-                            <div className="flex gap-2 flex-wrap">
-                                {countries.map(c => (
+                            <div className="flex gap-3 flex-wrap">
+                                {connectedAccounts.map(account => (
                                     <button 
-                                        key={c.id}
+                                        key={account.id}
                                         type="button"
-                                        onClick={() => setTargetCountryId(c.id)}
-                                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all border ${targetCountryId === c.id ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'}`}
+                                        onClick={() => toggleTargetAccount(account.id)}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${targetAccountIds.includes(account.id) ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'}`}
                                     >
-                                        {c.name}
+                                        {account.platform === 'Facebook' ? <Facebook size={14} /> : <Instagram size={14} />}
+                                        {account.name}
+                                        {targetAccountIds.includes(account.id) && <CheckCircle size={12} className="text-white" />}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
+                        {/* Basic Info */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
+                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm text-slate-400 mb-1">Product Name</label>
-                                    <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" placeholder="e.g., Smart Watch Ultra" />
+                                    <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm text-slate-400 mb-1">Price ({activeCountry.currency})</label>
+                                        <label className="block text-sm text-slate-400 mb-1">Price</label>
                                         <input required type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
                                     </div>
                                     <div>
@@ -432,112 +607,68 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                         <input required type="number" value={stock} onChange={e=>setStock(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none" />
                                     </div>
                                 </div>
-                                <div>
-                                    <label className="block text-sm text-slate-400 mb-1">Category</label>
-                                    <select value={category} onChange={e=>setCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none">
-                                        <option>Electronics</option>
-                                        <option>Fashion</option>
-                                        <option>Home</option>
-                                        <option>Beauty</option>
-                                        <option>Photography</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="space-y-4">
-                                <div>
-                                     <label className="block text-sm text-slate-400 mb-1">Description</label>
-                                     <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none h-[180px] resize-none" placeholder="Describe features, warranty, etc." />
-                                </div>
-                            </div>
+                             </div>
+                             <div>
+                                 <label className="block text-sm text-slate-400 mb-1">Description</label>
+                                 <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-white focus:border-accent outline-none h-[130px] resize-none" />
+                             </div>
                         </div>
 
-                        {/* Shipping & Publishing */}
+                        {/* Recurring & Schedule */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700 pt-6">
+                            {/* Schedule */}
                             <div className="p-4 bg-slate-900/50 rounded-xl border border-slate-700">
-                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Truck size={16}/> Shipping Configuration</h3>
-                                <div className="flex gap-4 mb-4">
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" checked={shippingType==='paid'} onChange={()=>setShippingType('paid')} className="accent-blue-500" />
-                                        <span className="text-slate-300">Paid</span>
-                                    </label>
-                                    <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" checked={shippingType==='free'} onChange={()=>setShippingType('free')} className="accent-blue-500" />
-                                        <span className="text-slate-300">Free</span>
-                                    </label>
-                                </div>
-                                {shippingType === 'paid' && (
-                                    <div>
-                                        <label className="block text-sm text-slate-400 mb-1">Default Cost ({activeCountry.currency})</label>
-                                        <input type="number" value={defaultShipping} onChange={e=>setDefaultShipping(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-white" />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="p-4 bg-blue-900/10 rounded-xl border border-blue-900/30">
-                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Share2 size={16}/> Publishing Schedule</h3>
+                                <h3 className="font-semibold text-white mb-3 flex items-center gap-2"><Clock size={16}/> Schedule</h3>
                                 <div className="space-y-3">
                                     <div className="flex gap-4">
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <input 
-                                                type="radio" 
-                                                checked={publishMode==='instant'} 
-                                                onChange={()=>setPublishMode('instant')} 
-                                                className="accent-blue-500" 
-                                            />
+                                            <input type="radio" checked={publishMode==='instant'} onChange={()=>setPublishMode('instant')} className="accent-blue-500" />
                                             <span className="text-sm text-slate-300">Publish Now</span>
                                         </label>
                                         <label className="flex items-center gap-2 cursor-pointer">
-                                            <input 
-                                                type="radio" 
-                                                checked={publishMode==='scheduled'} 
-                                                onChange={()=>setPublishMode('scheduled')} 
-                                                className="accent-blue-500" 
-                                            />
+                                            <input type="radio" checked={publishMode==='scheduled'} onChange={()=>setPublishMode('scheduled')} className="accent-blue-500" />
                                             <span className="text-sm text-slate-300">Schedule</span>
                                         </label>
                                     </div>
-
-                                    {publishMode === 'instant' && (
-                                        <label className="flex items-center gap-2 cursor-pointer pt-2">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={autoPublish} 
-                                                onChange={e=>setAutoPublish(e.target.checked)} 
-                                                className="w-4 h-4 accent-blue-500 rounded" 
-                                            />
-                                            <span className="text-sm text-slate-400">Auto-publish to connected accounts</span>
-                                        </label>
-                                    )}
-
                                     {publishMode === 'scheduled' && (
                                         <div className="grid grid-cols-2 gap-2 mt-2">
-                                            <div>
-                                                <label className="text-xs text-slate-500 block mb-1">Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    value={scheduledDate}
-                                                    onChange={e => setScheduledDate(e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" 
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-slate-500 block mb-1">Time</label>
-                                                <input 
-                                                    type="time" 
-                                                    value={scheduledTime}
-                                                    onChange={e => setScheduledTime(e.target.value)}
-                                                    className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" 
-                                                />
-                                            </div>
+                                            <input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" />
+                                            <input type="time" value={scheduledTime} onChange={e => setScheduledTime(e.target.value)} className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white" />
                                         </div>
                                     )}
                                 </div>
+                            </div>
+
+                            {/* Recurring */}
+                            <div className={`p-4 rounded-xl border transition-all ${isRecurring ? 'bg-purple-900/10 border-purple-500/50' : 'bg-slate-900/50 border-slate-700'}`}>
+                                <div className="flex justify-between items-center mb-3">
+                                    <h3 className={`font-semibold flex items-center gap-2 ${isRecurring ? 'text-purple-300' : 'text-slate-400'}`}>
+                                        <Repeat size={16}/> Auto-Repost
+                                    </h3>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" className="sr-only peer" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
+                                        <div className="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                                    </label>
+                                </div>
+                                {isRecurring && (
+                                    <div className="animate-fade-in">
+                                        <label className="text-xs text-slate-400 block mb-1">Repeat Every</label>
+                                        <select value={recurrenceInterval} onChange={e => setRecurrenceInterval(Number(e.target.value))} className="w-full bg-slate-800 border border-slate-600 rounded p-1.5 text-xs text-white">
+                                            <option value={7}>7 Days</option>
+                                            <option value={14}>14 Days</option>
+                                            <option value={30}>30 Days</option>
+                                        </select>
+                                        <p className="text-[10px] text-purple-400 mt-2">Next repost will be automated.</p>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="flex justify-end gap-3 pt-2">
                             <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2.5 text-slate-400 hover:text-white transition">Cancel</button>
-                            <button type="submit" className="bg-accent hover:bg-accentHover px-8 py-2.5 rounded-xl text-white font-bold shadow-lg shadow-blue-900/20">{t.save[lang]}</button>
+                            <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-6 py-2.5 rounded-xl text-white font-bold shadow-lg shadow-blue-900/20 flex items-center gap-2">
+                                <Eye size={18} /> Preview & Publish
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -551,8 +682,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                     <tr>
                         <th className="p-4 font-medium w-24 text-center">Image</th>
                         <th className="p-4 font-medium">Product Details</th>
-                        <th className="p-4 font-medium">Price</th>
-                        <th className="p-4 font-medium">Market</th>
+                        <th className="p-4 font-medium">Publishing</th>
                         <th className="p-4 font-medium">Status</th>
                         <th className="p-4 font-medium text-right">Actions</th>
                     </tr>
@@ -562,34 +692,31 @@ export const Products: React.FC<Props> = ({ lang }) => {
                         <tr key={p.id} className="hover:bg-slate-700/20 transition-colors group">
                             <td className="p-4 text-center align-top">
                                 <div className="w-16 h-16 rounded-lg bg-slate-800 border border-slate-700 overflow-hidden relative mx-auto group-hover:shadow-lg transition-all">
-                                    {p.imageUrl ? (
-                                        <>
-                                            <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
-                                            {p.images && p.images.length > 1 && (
-                                                <div className="absolute bottom-0 right-0 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-tl-md backdrop-blur-sm flex items-center gap-0.5">
-                                                    <Layers size={8} /> +{p.images.length - 1}
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-600">
-                                            <ImageIcon size={24} />
-                                        </div>
-                                    )}
+                                    {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />}
                                 </div>
                             </td>
                             <td className="p-4 align-top">
                                 <div className="font-bold text-white text-lg">{p.name}</div>
                                 <div className="text-xs text-slate-500 mt-1 flex flex-col gap-1">
-                                    <span>{p.category}</span>
-                                    <span>Stock: <span className={p.stock < 10 ? 'text-red-400 font-bold' : 'text-slate-400'}>{p.stock} units</span></span>
+                                    <span>{p.price} {p.currency}</span>
+                                    <span>Stock: {p.stock}</span>
                                 </div>
                             </td>
-                            <td className="p-4 font-mono text-white align-top">{p.price} <span className="text-xs text-slate-500">{p.currency}</span></td>
                             <td className="p-4 align-top">
-                                <span className="px-2 py-1 rounded text-xs font-bold uppercase bg-slate-700 text-slate-300">
-                                    {p.targetCountryId ? countries.find(c=>c.id===p.targetCountryId)?.name || 'Global' : 'Global'}
-                                </span>
+                                <div className="flex flex-col gap-2">
+                                     <div className="flex items-center gap-1">
+                                        {(p.publishedTo || []).map((plat, i) => (
+                                            <div key={i} title={plat} className={`w-5 h-5 rounded flex items-center justify-center text-white ${plat==='Facebook'?'bg-blue-600':'bg-pink-600'}`}>
+                                                {plat === 'Facebook' ? <Facebook size={12}/> : <Instagram size={12}/>}
+                                            </div>
+                                        ))}
+                                     </div>
+                                     {p.isRecurring && (
+                                         <div className="flex items-center gap-1 text-[10px] text-purple-400 bg-purple-400/10 px-1.5 py-0.5 rounded w-fit border border-purple-500/20">
+                                             <Repeat size={10} /> Auto {p.recurrenceInterval}d
+                                         </div>
+                                     )}
+                                </div>
                             </td>
                             <td className="p-4 align-top">
                                 <div className="flex flex-col gap-2">
@@ -597,20 +724,22 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                         <div className="flex items-center gap-2 text-yellow-400 text-sm font-medium bg-yellow-400/10 px-2 py-1 rounded border border-yellow-400/20 w-fit">
                                             <Clock size={14} />
                                             <span>
-                                                {p.scheduledAt ? new Date(p.scheduledAt).toLocaleString() : 'Scheduled'}
+                                                {p.scheduledAt ? new Date(p.scheduledAt).toLocaleDateString() : 'Scheduled'}
                                             </span>
                                         </div>
-                                    ) : p.publishStatus === 'published' ? (
-                                        <div className="flex items-center gap-2">
-                                            {p.publishedTo.includes('Facebook') && <Facebook size={16} className="text-blue-500" title="Published on Facebook"/>}
-                                            {p.publishedTo.includes('Instagram') && <div className="w-4 h-4 rounded bg-gradient-to-tr from-yellow-400 to-purple-600" title="Published on Instagram"/>}
-                                        </div>
                                     ) : (
-                                        <span className="text-xs text-slate-500 italic">Draft</span>
+                                        <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+                                            <CheckCircle size={14} /> Published
+                                        </div>
+                                    )}
+                                    {p.nextPublishAt && (
+                                        <span className="text-[10px] text-slate-500">
+                                            Next: {new Date(p.nextPublishAt).toLocaleDateString()}
+                                        </span>
                                     )}
                                 </div>
                             </td>
-                            <td className="p-4 align-top">
+                            <td className="p-4 align-top text-right">
                                 <div className="flex justify-end gap-2">
                                     <button onClick={() => handleEdit(p)} className="p-2 hover:bg-slate-700 rounded-lg text-blue-400 transition-colors" title="Edit">
                                         <Edit2 size={18}/>
@@ -622,15 +751,6 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             </td>
                         </tr>
                     ))}
-                    {products.length === 0 && (
-                        <tr>
-                            <td colSpan={6} className="p-12 text-center text-slate-500">
-                                <Package className="mx-auto mb-4 opacity-50" size={48} />
-                                <p>No products added yet.</p>
-                                <button onClick={handleAddClick} className="text-blue-400 hover:underline mt-2">Add your first product</button>
-                            </td>
-                        </tr>
-                    )}
                 </tbody>
             </table>
         </div>

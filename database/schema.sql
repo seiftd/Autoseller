@@ -80,7 +80,22 @@ CREATE TABLE products (
     scheduled_at TIMESTAMP WITH TIME ZONE,
     publish_status VARCHAR(20) CHECK (publish_status IN ('draft', 'scheduled', 'published')) DEFAULT 'published',
 
+    -- Recurring Logic
+    is_recurring BOOLEAN DEFAULT FALSE,
+    recurrence_interval INT DEFAULT 7, -- Days
+    last_published_at TIMESTAMP WITH TIME ZONE,
+    next_publish_at TIMESTAMP WITH TIME ZONE,
+
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 6.1 PRODUCT PUBLISH TARGETS
+-- ==========================================
+CREATE TABLE product_publish_targets (
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    account_id UUID NOT NULL REFERENCES connected_accounts(id) ON DELETE CASCADE,
+    PRIMARY KEY (product_id, account_id)
 );
 
 -- ==========================================
@@ -170,7 +185,20 @@ CREATE TABLE webhook_logs (
 );
 
 -- ==========================================
--- 14. SUBSCRIPTIONS
+-- 14. PUBLISH LOGS
+-- ==========================================
+CREATE TABLE publish_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+    account_id UUID REFERENCES connected_accounts(id) ON DELETE SET NULL,
+    publish_type VARCHAR(20) CHECK (publish_type IN ('instant', 'scheduled', 'recurring')),
+    status VARCHAR(20) CHECK (status IN ('success', 'failed')),
+    published_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    error_message TEXT
+);
+
+-- ==========================================
+-- 15. SUBSCRIPTIONS
 -- ==========================================
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -196,6 +224,7 @@ CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
 -- Performance Lookups
 CREATE INDEX idx_products_status ON products(status);
 CREATE INDEX idx_products_publish_status ON products(publish_status); -- New Index for scheduler
+CREATE INDEX idx_products_next_publish_at ON products(next_publish_at); -- Index for recurring scheduler
 CREATE INDEX idx_product_delivery_product_state ON product_delivery(product_id, state_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_messages_conversation ON messages(conversation_id);
@@ -212,3 +241,4 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE connected_accounts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE publish_logs ENABLE ROW LEVEL SECURITY;

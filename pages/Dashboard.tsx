@@ -4,7 +4,7 @@ import { UserStats, Language } from '../types';
 import { TEXTS } from '../constants';
 import { StatsCard } from '../components/StatsCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShoppingBag, DollarSign, Package, MessageSquare, Clock, CheckCircle } from 'lucide-react';
+import { ShoppingBag, DollarSign, Package, MessageSquare, Clock, CheckCircle, Repeat, RefreshCw } from 'lucide-react';
 
 interface Props {
   lang: Language;
@@ -64,11 +64,23 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
           icon={Clock} 
           subtext="Pending Publication"
         />
-         <StatsCard 
+        <StatsCard 
           title="Published" 
           value={stats.publishedPosts} 
           icon={CheckCircle} 
           subtext="Live on Socials"
+        />
+        <StatsCard 
+          title="Active Recurring" 
+          value={stats.recurringActive} 
+          icon={Repeat} 
+          subtext="Products Reposting"
+        />
+        <StatsCard 
+          title="Total Reposts" 
+          value={stats.totalReposts} 
+          icon={RefreshCw} 
+          subtext="Automated Runs"
         />
       </div>
 

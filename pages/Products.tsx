@@ -6,7 +6,7 @@ import { authService } from '../services/authService';
 import { Product, Language, Country, SocialAccount } from '../types';
 import { TEXTS } from '../constants';
 import { useToast } from '../contexts/ToastContext';
-import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Facebook, Instagram, Share2, Image as ImageIcon, Star, Clock, Repeat, Eye, MoreHorizontal, Heart, MessageCircle, Send, AlertTriangle, RefreshCw, X } from 'lucide-react';
+import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Facebook, Instagram, Share2, Image as ImageIcon, Star, Clock, Repeat, Eye, MoreHorizontal, Heart, MessageCircle, Send, X } from 'lucide-react';
 import { EmptyState, Spinner, Badge, SectionHeader } from '../components/PremiumUI';
 
 interface Props {
@@ -320,7 +320,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                   {/* Controls Side */}
                   <div className="w-full md:w-1/3 bg-slate-50 p-6 flex flex-col border-r border-slate-200 overflow-y-auto">
                       <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-slate-800">
-                          <Eye size={20} className="text-blue-600"/> Post Preview
+                          <Eye size={20} className="text-blue-600"/> {t.confirmPublish[lang]}
                       </h3>
                       
                       <div className="space-y-4 mb-8">
@@ -346,13 +346,13 @@ export const Products: React.FC<Props> = ({ lang }) => {
                               onClick={() => setShowPreview(false)}
                               className="w-full py-3 bg-white border border-slate-300 rounded-xl text-slate-600 font-bold hover:bg-slate-50 transition"
                           >
-                              Back to Edit
+                              Edit Details
                           </button>
                           <button 
                               onClick={() => handleSubmit()}
                               className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition shadow-lg shadow-blue-200 flex items-center justify-center gap-2"
                           >
-                              {publishing ? <Spinner size="sm" /> : 'Confirm & Publish'}
+                              {publishing ? <Spinner size="sm" /> : t.confirmPublish[lang]}
                           </button>
                       </div>
                   </div>
@@ -465,7 +465,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
 
                 <div className="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
                     <h2 className="text-2xl font-bold text-white">
-                        {editingId ? 'Edit Product' : 'Create New Product'}
+                        {editingId ? t.editProduct[lang] : t.createNewProduct[lang]}
                     </h2>
                     <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white p-2 hover:bg-slate-700 rounded-lg transition">
                         <X size={24} />
@@ -475,13 +475,13 @@ export const Products: React.FC<Props> = ({ lang }) => {
                 <form onSubmit={(e) => { e.preventDefault(); setShowPreview(true); }} className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     {/* Left Column: Multi-Image Gallery */}
                     <div className="space-y-4">
-                        <label className="block text-sm font-bold text-slate-400 mb-1">Product Gallery ({productImages.length}/5)</label>
+                        <label className="block text-sm font-bold text-slate-400 mb-1">{t.productGallery[lang]} ({productImages.length}/5)</label>
                         <div className="relative aspect-square rounded-2xl bg-slate-900 border border-slate-700 overflow-hidden group">
                             {productImages.length > 0 ? (
                                 <>
                                     <img src={productImages[0]} alt="Primary" className="w-full h-full object-contain" />
-                                    <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md shadow-sm font-bold flex items-center gap-1">
-                                        <Star size={10} fill="currentColor" /> Primary
+                                    <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md shadow-sm font-bold flex items-center gap-1 ltr:left-2 rtl:right-2">
+                                        <Star size={10} fill="currentColor" /> {t.primary[lang]}
                                     </div>
                                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
                                          <button 
@@ -497,7 +497,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             ) : (
                                 <div className="w-full h-full flex flex-col items-center justify-center text-slate-600">
                                     <ImageIcon size={48} className="mb-2 opacity-50" />
-                                    <span className="text-sm">No image selected</span>
+                                    <span className="text-sm">{t.dragDrop[lang]}</span>
                                 </div>
                             )}
                         </div>
@@ -507,7 +507,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                  <div key={idx} className="relative aspect-square rounded-xl bg-slate-900 border border-slate-700 overflow-hidden group cursor-pointer hover:border-blue-500 transition-colors" onClick={() => setPrimaryImage(idx + 1)}>
                                      <img src={img} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
                                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center gap-1 backdrop-blur-[1px]">
-                                         <span className="text-[9px] text-white font-bold uppercase">Make Primary</span>
+                                         <span className="text-[9px] text-white font-bold uppercase">{t.makePrimary[lang]}</span>
                                          <button 
                                             type="button"
                                             onClick={(e) => { e.stopPropagation(); removeImage(idx + 1); }}
@@ -555,7 +555,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                         {/* Target Accounts Selection */}
                         <div className="bg-slate-900/50 p-6 rounded-2xl border border-blue-900/30">
                             <label className="block text-sm text-blue-300 mb-3 font-bold flex items-center gap-2 uppercase tracking-wide">
-                                <Share2 size={16} /> Publish Targets
+                                <Share2 size={16} /> {t.publishTargets[lang]}
                             </label>
                             <div className="flex gap-3 flex-wrap">
                                 {connectedAccounts.map(account => (
@@ -577,25 +577,25 @@ export const Products: React.FC<Props> = ({ lang }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                              <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 mb-2">Product Name</label>
+                                    <label className="block text-sm font-bold text-slate-400 mb-2">{t.productName[lang]}</label>
                                     <input required type="text" value={name} onChange={e=>setName(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all placeholder:text-slate-600" placeholder="e.g. Wireless Headphones" />
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-400 mb-2">Price</label>
+                                        <label className="block text-sm font-bold text-slate-400 mb-2">{t.price[lang]}</label>
                                         <div className="relative">
                                             <input required type="number" value={price} onChange={e=>setPrice(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all" />
-                                            <span className="absolute right-4 top-3.5 text-xs font-bold text-slate-500">{activeCountry.currency}</span>
+                                            <span className="absolute right-4 top-3.5 rtl:right-auto rtl:left-4 text-xs font-bold text-slate-500">{activeCountry.currency}</span>
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-400 mb-2">Stock</label>
+                                        <label className="block text-sm font-bold text-slate-400 mb-2">{t.stock[lang]}</label>
                                         <input required type="number" value={stock} onChange={e=>setStock(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none transition-all" />
                                     </div>
                                 </div>
                              </div>
                              <div>
-                                 <label className="block text-sm font-bold text-slate-400 mb-2">Description</label>
+                                 <label className="block text-sm font-bold text-slate-400 mb-2">{t.description[lang]}</label>
                                  <textarea value={desc} onChange={e=>setDesc(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-4 text-white focus:border-accent focus:ring-1 focus:ring-accent outline-none h-[146px] resize-none leading-relaxed placeholder:text-slate-600" placeholder="Describe your product features..." />
                              </div>
                         </div>
@@ -604,7 +604,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-slate-700 pt-6">
                             {/* Schedule */}
                             <div className="p-5 bg-slate-900/30 rounded-2xl border border-slate-700/50 hover:border-slate-600 transition-colors">
-                                <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Clock size={18} className="text-blue-400"/> Scheduling</h3>
+                                <h3 className="font-bold text-white mb-4 flex items-center gap-2"><Clock size={18} className="text-blue-400"/> {t.scheduling[lang]}</h3>
                                 <div className="space-y-4">
                                     <div className="flex gap-4 p-1 bg-slate-800 rounded-lg">
                                         <button 
@@ -612,14 +612,14 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                             onClick={()=>setPublishMode('instant')}
                                             className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${publishMode === 'instant' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                         >
-                                            Publish Now
+                                            {t.publishNow[lang]}
                                         </button>
                                         <button 
                                             type="button"
                                             onClick={()=>setPublishMode('scheduled')}
                                             className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${publishMode === 'scheduled' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
                                         >
-                                            Schedule
+                                            {t.schedule[lang]}
                                         </button>
                                     </div>
                                     {publishMode === 'scheduled' && (
@@ -635,20 +635,20 @@ export const Products: React.FC<Props> = ({ lang }) => {
                             <div className={`p-5 rounded-2xl border transition-all ${isRecurring ? 'bg-purple-900/10 border-purple-500/50' : 'bg-slate-900/30 border-slate-700/50'}`}>
                                 <div className="flex justify-between items-center mb-4">
                                     <h3 className={`font-bold flex items-center gap-2 ${isRecurring ? 'text-purple-300' : 'text-slate-400'}`}>
-                                        <Repeat size={18}/> Auto-Repost
+                                        <Repeat size={18}/> {t.autoRepost[lang]}
                                     </h3>
                                     <label className="relative inline-flex items-center cursor-pointer">
                                         <input type="checkbox" className="sr-only peer" checked={isRecurring} onChange={e => setIsRecurring(e.target.checked)} />
-                                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                        <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] rtl:after:right-[2px] rtl:after:left-auto after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
                                     </label>
                                 </div>
                                 {isRecurring && (
                                     <div className="animate-fade-in">
-                                        <label className="text-xs font-bold text-slate-400 block mb-2 uppercase">Repeat Frequency</label>
+                                        <label className="text-xs font-bold text-slate-400 block mb-2 uppercase">{t.repeatFrequency[lang]}</label>
                                         <select value={recurrenceInterval} onChange={e => setRecurrenceInterval(Number(e.target.value))} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-purple-500">
-                                            <option value={7}>Every 7 Days</option>
-                                            <option value={14}>Every 14 Days</option>
-                                            <option value={30}>Every 30 Days</option>
+                                            <option value={7}>{t.days7[lang]}</option>
+                                            <option value={14}>{t.days14[lang]}</option>
+                                            <option value={30}>{t.days30[lang]}</option>
                                         </select>
                                     </div>
                                 )}
@@ -656,9 +656,9 @@ export const Products: React.FC<Props> = ({ lang }) => {
                         </div>
 
                         <div className="flex justify-end gap-4 pt-4 border-t border-slate-700">
-                            <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 text-slate-400 hover:text-white font-medium transition">Cancel</button>
+                            <button type="button" onClick={() => setShowForm(false)} className="px-6 py-3 text-slate-400 hover:text-white font-medium transition">{t.cancel[lang]}</button>
                             <button type="submit" className="bg-blue-600 hover:bg-blue-500 px-8 py-3 rounded-xl text-white font-bold shadow-lg shadow-blue-500/20 flex items-center gap-2 hover:scale-105 transition-all">
-                                <Eye size={18} /> Preview & Publish
+                                <Eye size={18} /> {t.confirmPublish[lang]}
                             </button>
                         </div>
                     </div>
@@ -670,27 +670,27 @@ export const Products: React.FC<Props> = ({ lang }) => {
         {products.length === 0 ? (
           <EmptyState 
             icon={Package} 
-            title="No Products Yet" 
-            description="Create your first product to start selling on Facebook and Instagram automatically." 
+            title={t.noProducts[lang]} 
+            description={t.createFirstProduct[lang]} 
             action={
               <button 
                   onClick={handleAddClick}
                   className="bg-accent hover:bg-accentHover text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg"
               >
-                  Create Product
+                  {t.addProduct[lang]}
               </button>
             }
           />
         ) : (
           <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-3xl overflow-hidden shadow-sm">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left rtl:text-right border-collapse">
                   <thead className="bg-slate-900/80 border-b border-slate-700 text-slate-400 text-xs uppercase tracking-wider font-semibold">
                       <tr>
-                          <th className="p-6 w-24 text-center">Image</th>
-                          <th className="p-6">Product Info</th>
-                          <th className="p-6">Platforms</th>
-                          <th className="p-6">Status</th>
-                          <th className="p-6 text-right">Actions</th>
+                          <th className="p-6 w-24 text-center">{t.productGallery[lang]}</th>
+                          <th className="p-6">{t.products[lang]}</th>
+                          <th className="p-6">{t.publishTargets[lang]}</th>
+                          <th className="p-6">{t.publishedStatus[lang]}</th>
+                          <th className="p-6 text-right rtl:text-left">{t.settings[lang]}</th>
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-700/50 text-slate-300">
@@ -705,7 +705,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                   <div className="font-bold text-white text-lg mb-1">{p.name}</div>
                                   <div className="flex items-center gap-3 text-xs text-slate-500">
                                       <span className="px-2 py-0.5 bg-slate-700 rounded text-slate-300 font-mono">{p.price} {p.currency}</span>
-                                      <span>Stock: <span className={p.stock < 10 ? 'text-red-400 font-bold' : 'text-slate-300'}>{p.stock}</span></span>
+                                      <span>{t.stock[lang]}: <span className={p.stock < 10 ? 'text-red-400 font-bold' : 'text-slate-300'}>{p.stock}</span></span>
                                   </div>
                               </td>
                               <td className="p-6 align-top">
@@ -729,12 +729,12 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                   <div className="flex flex-col items-start gap-2">
                                       {p.publishStatus === 'scheduled' ? (
                                           <Badge variant="warning">
-                                            <Clock size={12} className="mr-1" />
+                                            <Clock size={12} className="mr-1 rtl:ml-1 rtl:mr-0" />
                                             {p.scheduledAt ? new Date(p.scheduledAt).toLocaleDateString() : 'Scheduled'}
                                           </Badge>
                                       ) : p.publishStatus === 'published' ? (
                                           <Badge variant="success">
-                                            <CheckCircle size={12} className="mr-1" /> Published
+                                            <CheckCircle size={12} className="mr-1 rtl:ml-1 rtl:mr-0" /> {t.publishedStatus[lang]}
                                           </Badge>
                                       ) : (
                                           <Badge variant="neutral">Draft</Badge>
@@ -747,8 +747,8 @@ export const Products: React.FC<Props> = ({ lang }) => {
                                       )}
                                   </div>
                               </td>
-                              <td className="p-6 align-top text-right">
-                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <td className="p-6 align-top text-right rtl:text-left">
+                                  <div className="flex justify-end rtl:justify-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                       <button onClick={() => handleEdit(p)} className="p-2 hover:bg-slate-700 rounded-lg text-blue-400 transition-colors" title="Edit">
                                           <Edit2 size={18}/>
                                       </button>

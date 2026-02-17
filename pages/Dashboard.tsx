@@ -6,8 +6,8 @@ import { UserStats, Language } from '../types';
 import { TEXTS } from '../constants';
 import { StatsCard } from '../components/StatsCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Repeat, RefreshCw, Zap, Activity } from 'lucide-react';
-import { Skeleton, ProgressBar, Badge, SectionHeader } from '../components/PremiumUI';
+import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Zap, Activity } from 'lucide-react';
+import { Skeleton, ProgressBar, SectionHeader } from '../components/PremiumUI';
 
 interface Props {
   lang: Language;
@@ -63,11 +63,11 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
     <div className="space-y-8 animate-fade-in pb-12">
       <SectionHeader 
         title={t.dashboard[lang]}
-        subtitle={`Welcome back, ${user?.fullName || 'Merchant'}`}
+        subtitle={lang === 'ar' ? `مرحباً بعودتك، ${user?.fullName || 'تاجر'}` : `Welcome back, ${user?.fullName || 'Merchant'}`}
         action={
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${systemHealth ? 'bg-emerald-900/30 border-emerald-800 text-emerald-400' : 'bg-red-900/30 border-red-800 text-red-400'}`}>
                <div className={`w-2 h-2 rounded-full animate-pulse ${systemHealth ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
-               <span>{systemHealth ? 'System Operational' : 'Degraded Performance'}</span>
+               <span>{systemHealth ? t.systemOperational[lang] : t.degradedPerformance[lang]}</span>
             </div>
         }
       />
@@ -81,8 +81,8 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
               <div className="flex-1 w-full">
                   <div className="flex justify-between items-end mb-2">
                       <div>
-                          <h3 className="text-white font-bold text-lg">Daily AI Reply Usage</h3>
-                          <p className="text-slate-400 text-xs">Plan: <span className="uppercase text-blue-400 font-bold">{user.plan}</span></p>
+                          <h3 className="text-white font-bold text-lg">{t.dailyAiUsage[lang]}</h3>
+                          <p className="text-slate-400 text-xs">{t.plan[lang]}: <span className="uppercase text-blue-400 font-bold">{user.plan}</span></p>
                       </div>
                       <div className="text-right">
                           <span className="text-2xl font-bold text-white">{dailyUsage}</span>
@@ -99,11 +99,11 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
               <div className="flex gap-4">
                   <div className="text-center">
                       <div className="text-emerald-400 font-bold text-xl">98%</div>
-                      <div className="text-slate-500 text-xs">Success Rate</div>
+                      <div className="text-slate-500 text-xs">{t.successRate[lang]}</div>
                   </div>
                   <div className="text-center">
                       <div className="text-blue-400 font-bold text-xl">1.2s</div>
-                      <div className="text-slate-500 text-xs">Avg Response</div>
+                      <div className="text-slate-500 text-xs">{t.avgResponse[lang]}</div>
                   </div>
               </div>
           </div>
@@ -119,7 +119,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                   title={t.totalOrders[lang]} 
                   value={stats?.totalOrders || 0} 
                   icon={Package} 
-                  trend="+5 today"
+                  trend={lang === 'ar' ? "+5 اليوم" : "+5 today"}
                 />
                 <StatsCard 
                   title={t.totalRevenue[lang]} 
@@ -127,16 +127,16 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                   icon={DollarSign} 
                 />
                 <StatsCard 
-                  title="Scheduled Posts" 
+                  title={t.scheduledPosts[lang]} 
                   value={stats?.scheduledPosts || 0} 
                   icon={Clock} 
-                  subtext="Pending Publication"
+                  subtext={t.pendingPublication[lang]}
                 />
                 <StatsCard 
-                  title="Published" 
+                  title={t.publishedStatus[lang]} 
                   value={stats?.publishedPosts || 0} 
                   icon={CheckCircle} 
-                  subtext="Live on Socials"
+                  subtext={t.liveOnSocials[lang]}
                 />
             </>
         )}
@@ -146,7 +146,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
         {/* Main Chart */}
         <div className="lg:col-span-2 bg-slate-800/50 backdrop-blur-md border border-slate-700 p-6 rounded-2xl shadow-sm">
           <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2">
-              <Activity size={18} className="text-blue-500" /> Revenue Overview
+              <Activity size={18} className="text-blue-500" /> {t.revenueOverview[lang]}
           </h3>
           <div className="h-[300px]">
             {loading ? <Skeleton className="w-full h-full" /> : (
@@ -158,6 +158,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                     tick={{ fill: '#64748b', fontSize: 12 }} 
                     axisLine={false}
                     tickLine={false}
+                    reversed={lang === 'ar'} // Reverse Axis for RTL
                     />
                     <YAxis hide />
                     <Tooltip 
@@ -167,7 +168,8 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                         border: '1px solid #1e293b',
                         borderRadius: '12px',
                         color: '#f8fafc',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        textAlign: lang === 'ar' ? 'right' : 'left'
                     }}
                     />
                     <Bar dataKey="val" radius={[6, 6, 0, 0]}>
@@ -192,7 +194,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
             ) : stats?.recentOrders.length === 0 ? (
                 <div className="text-center py-8 text-slate-500 border border-dashed border-slate-700 rounded-xl bg-slate-900/30">
                     <Package className="mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No orders yet.</p>
+                    <p className="text-sm font-medium">{t.noOrders[lang]}</p>
                 </div>
             ) : (
                 stats?.recentOrders.map((order, idx) => (
@@ -206,9 +208,9 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                                 <p className="text-xs text-slate-500">{order.wilaya}</p>
                             </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-end">
                             <p className="text-sm font-bold text-white">{order.total} DA</p>
-                            <Badge variant={order.status === 'pending' ? 'warning' : 'success'}>{order.status}</Badge>
+                            <span className={`text-[10px] uppercase font-bold ${order.status === 'pending' ? 'text-yellow-500' : 'text-emerald-500'}`}>{order.status}</span>
                         </div>
                     </div>
                 ))

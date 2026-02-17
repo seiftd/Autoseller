@@ -40,7 +40,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
 
   const handleSaveCountries = () => {
     storageService.saveCountries(countries);
-    showToast('Country Settings Saved', 'success');
+    showToast(t.save[lang], 'success');
   };
 
   const handleRetryJob = (id: string) => {
@@ -88,7 +88,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                 onClick={() => setActiveTab('general')}
                 className={`pb-4 px-2 font-medium transition-colors whitespace-nowrap ${activeTab === 'general' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400 hover:text-white'}`}
             >
-                Integrations
+                {t.integrations[lang]}
             </button>
             <button 
                 onClick={() => setActiveTab('countries')}
@@ -100,13 +100,13 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                 onClick={() => setActiveTab('security')}
                 className={`pb-4 px-2 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'security' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400 hover:text-white'}`}
             >
-                <Lock size={16} /> Security
+                <Lock size={16} /> {t.security[lang]}
             </button>
             <button 
                 onClick={() => setActiveTab('health')}
                 className={`pb-4 px-2 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'health' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-white'}`}
             >
-                <Activity size={16} /> System Health
+                <Activity size={16} /> {t.systemHealth[lang]}
             </button>
         </div>
 
@@ -124,11 +124,8 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                                 <p className="text-xs text-green-400">Connected as "My Shop"</p>
                             </div>
                         </div>
-                        <button className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-white transition-colors">Disconnect</button>
+                        <button className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-white transition-colors">{t.disconnectBtn[lang]}</button>
                     </div>
-                </div>
-                <div className="mt-4 p-4 bg-blue-900/10 border border-blue-900/30 rounded-xl text-sm text-blue-300">
-                    To manage connections and view detailed guides, please visit the <a href="#/connected-accounts" className="underline font-bold">Connected Accounts</a> page.
                 </div>
             </div>
         )}
@@ -136,10 +133,10 @@ export const Settings: React.FC<Props> = ({ lang }) => {
         {activeTab === 'countries' && (
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center">
-                    <p className="text-slate-400">Manage supported countries, regions, and shipping providers.</p>
+                    <p className="text-slate-400 text-sm md:text-base">Manage supported countries, regions, and shipping providers.</p>
                     <button onClick={handleSaveCountries} className="flex items-center gap-2 bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium transition-all shadow-lg">
                         <Save size={18} />
-                        Save Changes
+                        {t.saveChanges[lang]}
                     </button>
                 </div>
 
@@ -156,7 +153,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             {/* Shipping Companies */}
                             <div>
-                                <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2"><Truck size={14}/> Shipping Providers</h3>
+                                <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2"><Truck size={14}/> {t.shippingCompany[lang]}</h3>
                                 <div className="space-y-2">
                                     {country.shippingCompanies.map(sc => (
                                         <div key={sc} className="flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-800">
@@ -191,11 +188,6 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                         </div>
                     </div>
                 ))}
-
-                <button className="w-full py-4 border-2 border-dashed border-slate-700 rounded-2xl text-slate-400 hover:text-white hover:border-slate-500 hover:bg-slate-800/30 transition-all font-medium flex items-center justify-center gap-2">
-                    <Plus size={20} />
-                    Add New Country (Coming Soon)
-                </button>
             </div>
         )}
 
@@ -204,14 +196,14 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                  <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl">
                      <div className="flex justify-between items-start mb-6">
                          <div>
-                             <h2 className="text-xl font-bold text-white mb-2">Active Sessions</h2>
-                             <p className="text-slate-400 text-sm">Manage devices where you are currently logged in.</p>
+                             <h2 className="text-xl font-bold text-white mb-2">{t.activeSessions[lang]}</h2>
+                             <p className="text-slate-400 text-sm">{t.manageDevices[lang]}</p>
                          </div>
                          <button 
                             onClick={handleLogoutAll}
                             className="text-red-400 hover:text-red-300 text-sm font-medium border border-red-500/20 bg-red-500/5 px-4 py-2 rounded-xl transition-colors hover:bg-red-500/10"
                          >
-                             Log out all other devices
+                             {t.logoutAll[lang]}
                          </button>
                      </div>
 
@@ -238,15 +230,15 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                  </div>
 
                  <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl">
-                     <h2 className="text-xl font-bold text-white mb-2">Authentication</h2>
-                     <p className="text-slate-400 text-sm mb-6">Update your password or enable 2FA.</p>
+                     <h2 className="text-xl font-bold text-white mb-2">{t.authentication[lang]}</h2>
+                     <p className="text-slate-400 text-sm mb-6">{t.updatePass[lang]}</p>
                      
                      <div className="flex gap-4">
                          <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium text-sm transition-colors">
-                             Change Password
+                             {t.changePassword[lang]}
                          </button>
                          <button className="px-4 py-2 border border-slate-600 text-slate-300 hover:text-white rounded-xl font-medium text-sm transition-colors">
-                             Enable 2-Factor Auth
+                             {t.enable2FA[lang]}
                          </button>
                      </div>
                  </div>

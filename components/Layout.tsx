@@ -45,8 +45,8 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
                   : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/50'}
               `}
             >
-              <Icon size={18} />
-              {t[item.labelKey][lang]}
+              <Icon size={18} className="rtl:rotate-0" />
+              <span>{t[item.labelKey][lang]}</span>
             </Link>
           );
         })}
@@ -57,7 +57,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
           onClick={onLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 text-slate-400 hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/5"
         >
-          <LogOut size={18} />
+          <LogOut size={18} className="rtl:rotate-180" />
           {t.logout[lang]}
         </button>
       </div>
@@ -65,9 +65,9 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] flex">
+    <div className="min-h-screen bg-[#020617] flex" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Sidebar Desktop */}
-      <aside className="hidden md:flex w-64 flex-col border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl fixed h-full z-20">
+      <aside className="hidden md:flex w-64 flex-col border-r rtl:border-r-0 rtl:border-l border-slate-800 bg-slate-900/50 backdrop-blur-xl fixed h-full z-20 ltr:left-0 rtl:right-0">
         <NavContent />
       </aside>
 
@@ -92,7 +92,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
       )}
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden flex flex-col min-h-screen">
+      <main className="flex-1 ltr:md:ml-64 rtl:md:mr-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden flex flex-col min-h-screen">
         <div className="max-w-6xl mx-auto w-full flex-1">
           <div className="flex justify-end mb-6">
              <LanguageSwitcher current={lang} onChange={setLang} />

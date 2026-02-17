@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
 import { facebookService } from '../services/facebookService';
+import { authService } from '../services/authService';
 import { Product, Language, Country, SocialAccount } from '../types';
 import { TEXTS } from '../constants';
 import { Plus, Package, Edit2, Trash2, CheckCircle, XCircle, Truck, Facebook, Instagram, Share2, Upload, X, Image as ImageIcon, Star, Layers, Globe, Zap, Calendar, Clock, AlertTriangle, Repeat, Eye, Smartphone, MoreHorizontal, Heart, MessageCircle, Send } from 'lucide-react';
@@ -180,6 +181,7 @@ export const Products: React.FC<Props> = ({ lang }) => {
 
       return {
           id: editingId || crypto.randomUUID(),
+          userId: authService.getTenantId(),
           name,
           price: Number(price),
           stock: Number(stock),

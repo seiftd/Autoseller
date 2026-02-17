@@ -232,6 +232,7 @@ CREATE TABLE error_logs (
 -- ==========================================
 CREATE TABLE publish_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id), -- Added tenant isolation
     product_id UUID REFERENCES products(id) ON DELETE SET NULL,
     account_id UUID REFERENCES connected_accounts(id) ON DELETE SET NULL,
     publish_type VARCHAR(20) CHECK (publish_type IN ('instant', 'scheduled', 'recurring')),
@@ -254,6 +255,31 @@ CREATE TABLE subscriptions (
 );
 
 -- ==========================================
+-- 19. AUDIT LOGS (Security)
+-- ==========================================
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id),
+    action VARCHAR(50) NOT NULL,
+    target_id UUID,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    details JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 20. SPAM PROTECTION LOGS (Anti-Abuse)
+-- ==========================================
+CREATE TABLE spam_protection_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id),
+    reason VARCHAR(50),
+    details JSONB,
+    blocked_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
 -- INDEXING
 -- ==========================================
 
@@ -263,6 +289,8 @@ CREATE INDEX idx_products_user_id ON products(user_id);
 CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
+CREATE INDEX idx_publish_logs_user_id ON publish_logs(user_id);
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
 
 -- Performance Lookups
 CREATE INDEX idx_products_status ON products(status);
@@ -293,3 +321,8 @@ ALTER TABLE publish_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- EXAMPLE POLICIES (Conceptual)
+-- CREATE POLICY product_isolation ON products USING (user_id = auth.uid());
+-- CREATE POLICY account_isolation ON connected_accounts USING (user_id = auth.uid());

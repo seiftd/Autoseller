@@ -4,15 +4,28 @@ export type Platform = 'Facebook' | 'Instagram';
 
 export type Currency = 'DZD' | 'EUR' | 'USD' | 'MAD' | 'TND';
 
+export type UserRole = 'admin' | 'user';
+export type SubscriptionPlan = 'free' | 'pro' | 'business';
+
+export interface User {
+  id: string;
+  email: string;
+  fullName: string;
+  role: UserRole;
+  plan: SubscriptionPlan;
+  createdAt: number;
+}
+
 export interface SocialAccount {
   id: string;
+  userId: string; // Tenant Isolation
   platform: Platform;
   name: string;
   connected: boolean;
   avatarUrl?: string;
   lastSync: number;
   // Facebook Specifics
-  accessToken?: string; // Page Access Token
+  accessToken?: string; // Encrypted
   pageId?: string;
   instagramId?: string; // Linked IG Business ID
 }
@@ -51,6 +64,7 @@ export interface DeliverySettings {
 
 export interface Product {
   id: string;
+  userId: string; // Tenant Isolation
   name: string;
   description: string;
   price: number;
@@ -86,6 +100,7 @@ export interface Product {
 
 export interface PublishLog {
   id: string;
+  userId: string; // Tenant Isolation
   productId: string;
   productName: string;
   accountId: string;
@@ -99,6 +114,7 @@ export interface PublishLog {
 
 export interface Order {
   id: string;
+  userId: string; // Tenant Isolation
   customerName: string;
   phone: string;
   wilaya: string; // Keep for backward compat, acts as region
@@ -123,6 +139,7 @@ export interface Message {
 
 export interface Conversation {
   id: string;
+  userId: string; // Tenant Isolation
   customerName: string;
   platform: Platform;
   lastMessage: string;
@@ -160,7 +177,9 @@ export interface Translation {
 
 export interface WebhookEvent {
   id: string;
-  platformEventId: string; // Unique ID from platform to ensure idempotency
+  // Webhooks are global entry points, but processed events should be linked to a tenant if possible
+  // via page_id mapping
+  platformEventId: string; 
   platform: Platform;
   payload: any;
   receivedAt: number;
@@ -197,4 +216,25 @@ export interface SystemHealth {
   webhookSuccessRate: number;
   uptime: number;
   lastError?: ErrorLog;
+}
+
+// --- SECURITY & COMPLIANCE TYPES ---
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  action: string; // e.g., 'login', 'publish_product', 'connect_account'
+  targetId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  timestamp: number;
+  details?: any;
+}
+
+export interface SpamProtectionLog {
+  id: string;
+  userId: string;
+  reason: 'rate_limit' | 'reply_loop' | 'duplicate_content' | 'bot_loop';
+  blockedAt: number;
+  details: any;
 }

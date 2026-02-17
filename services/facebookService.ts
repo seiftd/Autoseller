@@ -1,4 +1,5 @@
 import { Product, SocialAccount } from '../types';
+import { authService } from './authService';
 
 declare global {
   interface Window {
@@ -97,6 +98,7 @@ export const facebookService = {
         // Facebook Page
         accounts.push({
           id: page.id,
+          userId: authService.getTenantId(),
           platform: 'Facebook',
           name: page.name,
           connected: true,
@@ -110,6 +112,7 @@ export const facebookService = {
         if (page.instagram_business_account) {
           accounts.push({
              id: page.instagram_business_account.id,
+             userId: authService.getTenantId(),
              platform: 'Instagram',
              name: `${page.name} (IG)`,
              connected: true,

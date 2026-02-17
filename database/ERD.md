@@ -71,6 +71,7 @@ erDiagram
 
     PUBLISH_LOGS {
         uuid id PK
+        uuid user_id FK
         uuid product_id FK
         uuid account_id FK
         string publish_type
@@ -119,6 +120,25 @@ erDiagram
         string stack_trace
         jsonb metadata
         timestamp timestamp
+    }
+    
+    AUDIT_LOGS {
+        uuid id PK
+        uuid user_id FK
+        string action
+        uuid target_id
+        string ip_address
+        string user_agent
+        jsonb details
+        timestamp created_at
+    }
+    
+    SPAM_PROTECTION_LOGS {
+        uuid id PK
+        uuid user_id FK
+        string reason
+        jsonb details
+        timestamp blocked_at
     }
 
     PRODUCT_IMAGES {
@@ -190,6 +210,9 @@ erDiagram
     USERS ||--o{ ORDERS : receives
     USERS ||--o{ CONVERSATIONS : manages
     USERS ||--o{ SUBSCRIPTIONS : has
+    USERS ||--o{ AUDIT_LOGS : generates
+    USERS ||--o{ SPAM_PROTECTION_LOGS : triggers
+    USERS ||--o{ PUBLISH_LOGS : owns
     
     COUNTRIES ||--o{ STATES : has
     COUNTRIES ||--o{ SHIPPING_COMPANIES : has

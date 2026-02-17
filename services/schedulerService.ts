@@ -38,6 +38,7 @@ export const schedulerService = {
             for (const account of targetAccounts) {
                 const log: PublishLog = {
                     id: crypto.randomUUID(),
+                    userId: product.userId,
                     productId: product.id,
                     productName: product.name,
                     accountId: account.id,

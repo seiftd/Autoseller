@@ -9,9 +9,10 @@ import { Orders } from './pages/Orders';
 import { Inbox } from './pages/Inbox';
 import { ConnectedAccounts } from './pages/ConnectedAccounts';
 import { Settings } from './pages/Settings';
-import { Team } from './pages/Team'; // New
-import { PublishHistory } from './pages/PublishHistory'; // New
-import { Activity } from './pages/Activity'; // New
+import { Team } from './pages/Team';
+import { PublishHistory } from './pages/PublishHistory';
+import { Activity } from './pages/Activity';
+import { Billing } from './pages/Billing'; // Updated import
 import { PrivacyPolicy, TermsOfService, DataDeletion } from './pages/LegalPages';
 import { authService } from './services/authService';
 import { schedulerService } from './services/schedulerService';
@@ -127,16 +128,16 @@ const AppContent: React.FC = () => {
           <Settings lang={lang} />
         </ProtectedRoute>
       } />
+      <Route path="/billing" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
+          <Billing lang={lang} />
+        </ProtectedRoute>
+      } />
       
       {/* Placeholder Routes */}
       <Route path="/analytics" element={
         <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
           <div className="text-white text-center py-20">Analytics Module (Coming Soon)</div>
-        </ProtectedRoute>
-      } />
-      <Route path="/billing" element={
-        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
-          <div className="text-white text-center py-20">Billing Module (Coming Soon)</div>
         </ProtectedRoute>
       } />
     </Routes>

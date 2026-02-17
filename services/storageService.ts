@@ -1,4 +1,4 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog, WorkspaceMember, NotificationPreferences } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog, WorkspaceMember, NotificationPreferences, AddOn, UserAddOn } from '../types';
 import { DEFAULT_COUNTRIES } from '../constants';
 import { authService } from './authService';
 
@@ -17,6 +17,7 @@ const AUDIT_LOGS_KEY = 'autoseller_audit_logs';
 const SPAM_LOGS_KEY = 'autoseller_spam_logs';
 const WORKSPACE_MEMBERS_KEY = 'autoseller_workspace_members';
 const NOTIFICATION_PREFS_KEY = 'autoseller_notification_prefs';
+const USER_ADDONS_KEY = 'autoseller_user_addons';
 
 // Helper for Multi-Tenancy
 // In a real DB, this is enforced by WHERE user_id = ?
@@ -226,6 +227,44 @@ export const storageService = {
       let all: WorkspaceMember[] = data ? JSON.parse(data) : [];
       all = all.filter(m => !(m.id === memberId && m.workspaceId === uid));
       localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
+  },
+
+  // ADD-ONS
+  getUserAddons: (): UserAddOn[] => {
+      const uid = getTenantId();
+      const data = localStorage.getItem(USER_ADDONS_KEY);
+      const all: UserAddOn[] = data ? JSON.parse(data) : [];
+      return all.filter(addon => addon.userId === uid && addon.active);
+  },
+  toggleAddon: (addonId: string, active: boolean) => {
+      const uid = getTenantId();
+      const data = localStorage.getItem(USER_ADDONS_KEY);
+      let all: UserAddOn[] = data ? JSON.parse(data) : [];
+      
+      // If feature type, we just check existence. If quantity type, we add/remove instance.
+      // For this simplified marketplace, we assume 1 instance of each 'feature' type and allow multiples for 'quantity'.
+      // However, to keep it simple for the UI: One entry per Addon ID.
+      
+      const existingIdx = all.findIndex(a => a.userId === uid && a.addonId === addonId);
+      
+      if (active) {
+          if (existingIdx === -1) {
+              all.push({
+                  id: crypto.randomUUID(),
+                  userId: uid,
+                  addonId,
+                  active: true,
+                  purchasedAt: Date.now()
+              });
+          } else {
+              all[existingIdx].active = true;
+          }
+      } else {
+          if (existingIdx !== -1) {
+              all[existingIdx].active = false;
+          }
+      }
+      localStorage.setItem(USER_ADDONS_KEY, JSON.stringify(all));
   },
 
   // NOTIFICATION PREFERENCES

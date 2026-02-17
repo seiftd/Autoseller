@@ -45,6 +45,26 @@ CREATE TABLE email_preferences (
 );
 
 -- ==========================================
+-- 1.3 ADD-ONS MARKETPLACE
+-- ==========================================
+CREATE TABLE plan_addons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price_monthly DECIMAL(10, 2) NOT NULL,
+    feature_key VARCHAR(50) NOT NULL, -- e.g., 'extra_account', 'recurring_posts'
+    type VARCHAR(20) CHECK (type IN ('feature', 'quantity')) DEFAULT 'feature'
+);
+
+CREATE TABLE user_addons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    addon_id UUID NOT NULL REFERENCES plan_addons(id),
+    active BOOLEAN DEFAULT TRUE,
+    purchased_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
 -- 2. CONNECTED ACCOUNTS
 -- ==========================================
 CREATE TABLE connected_accounts (
@@ -316,6 +336,7 @@ CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
 CREATE INDEX idx_publish_logs_user_id ON publish_logs(user_id);
 CREATE INDEX idx_activity_logs_workspace_id ON activity_logs(workspace_id);
 CREATE INDEX idx_workspace_members_workspace_id ON workspace_members(workspace_id);
+CREATE INDEX idx_user_addons_user_id ON user_addons(user_id);
 
 -- Performance Lookups
 CREATE INDEX idx_products_status ON products(status);
@@ -348,3 +369,4 @@ ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_addons ENABLE ROW LEVEL SECURITY;

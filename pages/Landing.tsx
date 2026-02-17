@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { 
   Bot, ShoppingBag, Zap, TrendingUp, Globe, Check, 
   ArrowRight, MessageCircle, BarChart3, Shield, Truck, 
-  Layers, ChevronRight, Play, CheckCircle2, ArrowLeft
+  Layers, ChevronRight, Play, CheckCircle2, ArrowLeft,
+  Plus
 } from 'lucide-react';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { Language } from '../types';
@@ -375,18 +376,39 @@ export const Landing: React.FC = () => {
             <PricingCard 
               title="Free" 
               price="0" 
-              features={["1 Social Account", "50 Auto Replies/mo", "Basic Analytics", "Community Support"]}
+              features={[
+                  "1 Social Account", 
+                  "50 Auto Replies/mo", 
+                  "Basic Publishing", 
+                  "No Team", 
+                  "No Recurring Posts"
+              ]}
             />
             <PricingCard 
               title="Pro" 
               price="29" 
               featured 
-              features={["3 Social Accounts", "Unlimited Replies", "Advanced Analytics", "Priority Support", "Remove Branding", "Multi-Country"]}
+              badge="Customizable with Add-ons"
+              features={[
+                  "3 Social Accounts", 
+                  "Unlimited Replies", 
+                  "Scheduling", 
+                  "Add-On Marketplace Available", 
+                  "Advanced Analytics Option",
+                  "No Team"
+              ]}
             />
             <PricingCard 
               title="Business" 
               price="99" 
-              features={["10 Social Accounts", "Unlimited Everything", "API Access", "Dedicated Manager", "Custom Integrations"]}
+              features={[
+                  "10 Social Accounts", 
+                  "Unlimited Everything", 
+                  "Team (Up to 5 members)", 
+                  "API Access", 
+                  "Dedicated Manager",
+                  "All Add-ons Included"
+              ]}
             />
           </div>
         </div>
@@ -446,7 +468,7 @@ const FeatureCard: React.FC<{ icon: any, title: string, desc: string }> = ({ ico
   </div>
 );
 
-const PricingCard: React.FC<{ title: string, price: string, features: string[], featured?: boolean }> = ({ title, price, features, featured }) => (
+const PricingCard: React.FC<{ title: string, price: string, features: string[], featured?: boolean, badge?: string }> = ({ title, price, features, featured, badge }) => (
   <div className={`p-8 rounded-3xl border transition-all duration-300 relative ${featured ? 'bg-slate-800/80 border-blue-500 shadow-2xl shadow-blue-900/20 scale-105 z-10' : 'bg-slate-900/20 border-slate-800 hover:border-slate-700'}`}>
     {featured && (
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
@@ -458,6 +480,13 @@ const PricingCard: React.FC<{ title: string, price: string, features: string[], 
       <span className="text-4xl font-bold text-white">${price}</span>
       <span className="text-slate-500">/mo</span>
     </div>
+    
+    {badge && (
+        <div className="mb-6 flex items-center gap-2 text-xs font-bold text-blue-400 bg-blue-900/20 px-3 py-1.5 rounded-lg border border-blue-500/30">
+            <Plus size={12} /> {badge}
+        </div>
+    )}
+
     <ul className="space-y-4 mb-8">
       {features.map((f, i) => (
         <li key={i} className="flex items-center gap-3 text-slate-300 text-sm">

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { securityService } from '../services/securityService';
+import { billingService } from '../services/billingService';
 import { WorkspaceMember, Language } from '../types';
 import { TEXTS } from '../constants';
 import { SectionHeader, Badge, EmptyState } from '../components/PremiumUI';
-import { Users, UserPlus, Mail, Trash2, Shield } from 'lucide-react';
+import { Users, UserPlus, Mail, Trash2, Shield, Lock, Crown } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { Link } from 'react-router-dom';
 
 interface Props {
   lang: Language;
@@ -20,9 +22,14 @@ export const Team: React.FC<Props> = ({ lang }) => {
   const { showToast } = useToast();
   const t = TEXTS;
 
+  const canAccessTeam = billingService.canAccessTeam();
+  const planLimits = billingService.getPlanLimits();
+
   useEffect(() => {
-    loadMembers();
-  }, []);
+    if (canAccessTeam) {
+        loadMembers();
+    }
+  }, [canAccessTeam]);
 
   const loadMembers = () => {
     setMembers(storageService.getWorkspaceMembers());
@@ -30,7 +37,16 @@ export const Team: React.FC<Props> = ({ lang }) => {
 
   const handleInvite = (e: React.FormEvent) => {
       e.preventDefault();
-      // Simulate invite logic
+      
+      // Enforce Member Limit
+      // Currently members array + 1 (Owner)
+      // Note: members list usually excludes owner in this simple implementation, or we count manually.
+      // Assuming members array only contains invitees. Owner is implicitly 1.
+      if (members.length + 1 >= planLimits.teamMembers) {
+          showToast(`Member limit reached (${planLimits.teamMembers} max). Contact support for Enterprise.`, 'error');
+          return;
+      }
+
       const newMember: WorkspaceMember = {
           id: crypto.randomUUID(),
           workspaceId: 'user_123_admin', // current owner ID
@@ -61,15 +77,43 @@ export const Team: React.FC<Props> = ({ lang }) => {
       }
   };
 
+  if (!canAccessTeam) {
+      return (
+          <div className="space-y-8 animate-fade-in">
+              <SectionHeader title={t.team[lang]} />
+              <div className="flex flex-col items-center justify-center p-16 text-center bg-slate-800/30 border border-slate-800 border-dashed rounded-3xl relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 to-slate-900/90 z-10 backdrop-blur-[2px]"></div>
+                  <div className="relative z-20 flex flex-col items-center">
+                      <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mb-6 border border-slate-700 shadow-xl">
+                          <Lock size={32} className="text-yellow-500" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-white mb-2">Team Collaboration is Locked</h2>
+                      <p className="text-slate-400 max-w-md mb-8">
+                          Team management features are exclusively available on the <strong>Business Plan</strong>. 
+                          Invite up to 5 members to manage your store together.
+                      </p>
+                      <Link 
+                          to="/billing" 
+                          className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black font-bold px-8 py-3 rounded-xl shadow-lg shadow-yellow-500/20 flex items-center gap-2 transition-all hover:scale-105"
+                      >
+                          <Crown size={20} /> Upgrade to Business
+                      </Link>
+                  </div>
+              </div>
+          </div>
+      );
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
         <SectionHeader 
             title={t.team[lang]} 
-            subtitle="Manage access to your workspace"
+            subtitle={`Manage access (${members.length + 1}/${planLimits.teamMembers} members)`}
             action={
                 <button 
                     onClick={() => setShowInvite(!showInvite)}
-                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-all"
+                    disabled={members.length + 1 >= planLimits.teamMembers}
+                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-700 disabled:text-slate-500 text-white px-4 py-2 rounded-xl font-bold shadow-lg transition-all"
                 >
                     <UserPlus size={18} />
                     {t.invite[lang]}

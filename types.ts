@@ -16,6 +16,31 @@ export interface User {
   createdAt: number;
 }
 
+export interface AddOn {
+  id: string;
+  name: string;
+  description: string;
+  priceMonthly: number;
+  featureKey: 'extra_account' | 'recurring_posts' | 'advanced_analytics' | 'priority_alerts' | 'extra_replies';
+  type: 'feature' | 'quantity'; // feature = unlock boolean, quantity = +1 limit
+}
+
+export interface UserAddOn {
+  id: string;
+  userId: string;
+  addonId: string;
+  active: boolean;
+  purchasedAt: number;
+}
+
+export interface PlanLimits {
+  socialAccounts: number;
+  monthlyReplies: number;
+  teamMembers: number;
+  recurringPosts: boolean;
+  advancedAnalytics: boolean;
+}
+
 export interface WorkspaceMember {
   id: string;
   workspaceId: string; // usually owner's user_id

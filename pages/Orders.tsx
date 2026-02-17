@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
+import { csvService } from '../services/csvService';
 import { Order, Language } from '../types';
 import { TEXTS } from '../constants';
-import { Package, Search, Phone, MapPin } from 'lucide-react';
+import { Package, Search, Phone, MapPin, Download } from 'lucide-react';
+import { SectionHeader } from '../components/PremiumUI';
 
 interface Props {
   lang: Language;
@@ -16,14 +18,25 @@ export const Orders: React.FC<Props> = ({ lang }) => {
     setOrders(storageService.getOrders());
   }, []);
 
+  const handleExport = () => {
+      csvService.exportOrders(orders, `orders-${new Date().toISOString().split('T')[0]}.csv`);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
-        <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                <Package className="text-accent" />
-                {t.orders[lang]}
-            </h1>
-        </div>
+        <SectionHeader 
+            title={t.orders[lang]}
+            action={
+                <button 
+                    onClick={handleExport}
+                    disabled={orders.length === 0}
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl font-medium transition-all border border-slate-700 disabled:opacity-50"
+                >
+                    <Download size={18} />
+                    {t.export[lang]}
+                </button>
+            }
+        />
 
         <div className="bg-slate-800/50 backdrop-blur-md border border-slate-700 rounded-2xl overflow-hidden">
              {orders.length === 0 ? (

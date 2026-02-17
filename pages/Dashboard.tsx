@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { storageService } from '../services/storageService';
 import { rateLimitService } from '../services/rateLimitService';
 import { authService } from '../services/authService';
-import { UserStats, Language } from '../types';
+import { UserStats, Language, SocialAccount } from '../types';
 import { TEXTS } from '../constants';
 import { StatsCard } from '../components/StatsCard';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Zap, Activity } from 'lucide-react';
-import { Skeleton, ProgressBar, SectionHeader } from '../components/PremiumUI';
+import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Zap, Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Skeleton, ProgressBar, SectionHeader, Badge } from '../components/PremiumUI';
 
 interface Props {
   lang: Language;
@@ -18,6 +18,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
   const [loading, setLoading] = useState(true);
   const [dailyUsage, setDailyUsage] = useState(0);
   const [systemHealth, setSystemHealth] = useState(true);
+  const [accounts, setAccounts] = useState<SocialAccount[]>([]);
   
   const user = authService.getCurrentUser();
   const t = TEXTS;
@@ -37,6 +38,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
   const loadData = () => {
     const currentStats = storageService.getStats();
     setStats(currentStats);
+    setAccounts(storageService.getAccounts());
     
     if (user) {
         setDailyUsage(rateLimitService.getDailyUsage(user.id));
@@ -59,6 +61,16 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
     { name: 'Fri', val: 3490 },
   ];
 
+  // Helper to check token health
+  const getAccountHealth = (acc: SocialAccount) => {
+      if (!acc.connected) return 'disconnected';
+      if (!acc.tokenExpiry) return 'healthy';
+      const daysLeft = (acc.tokenExpiry - Date.now()) / (1000 * 60 * 60 * 24);
+      if (daysLeft < 0) return 'expired';
+      if (daysLeft < 7) return 'warning';
+      return 'healthy';
+  };
+
   return (
     <div className="space-y-8 animate-fade-in pb-12">
       <SectionHeader 
@@ -72,9 +84,9 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
         }
       />
 
-      {/* Usage Meter */}
-      {!loading && user && (
-          <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-sm">
+      {/* Account Health Monitor Widget */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 bg-slate-800/40 border border-slate-700/50 p-6 rounded-2xl flex flex-col md:flex-row items-center gap-6 shadow-sm">
               <div className="p-3 bg-blue-500/10 rounded-xl text-blue-400">
                   <Zap size={24} />
               </div>
@@ -82,7 +94,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                   <div className="flex justify-between items-end mb-2">
                       <div>
                           <h3 className="text-white font-bold text-lg">{t.dailyAiUsage[lang]}</h3>
-                          <p className="text-slate-400 text-xs">{t.plan[lang]}: <span className="uppercase text-blue-400 font-bold">{user.plan}</span></p>
+                          <p className="text-slate-400 text-xs">{t.plan[lang]}: <span className="uppercase text-blue-400 font-bold">{user?.plan}</span></p>
                       </div>
                       <div className="text-right">
                           <span className="text-2xl font-bold text-white">{dailyUsage}</span>
@@ -95,19 +107,35 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                     colorClass={dailyUsage > planLimit * 0.9 ? 'bg-red-500' : 'bg-blue-500'}
                   />
               </div>
-              <div className="hidden md:block w-px h-12 bg-slate-700"></div>
-              <div className="flex gap-4">
-                  <div className="text-center">
-                      <div className="text-emerald-400 font-bold text-xl">98%</div>
-                      <div className="text-slate-500 text-xs">{t.successRate[lang]}</div>
-                  </div>
-                  <div className="text-center">
-                      <div className="text-blue-400 font-bold text-xl">1.2s</div>
-                      <div className="text-slate-500 text-xs">{t.avgResponse[lang]}</div>
-                  </div>
+          </div>
+
+          <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-2xl flex flex-col justify-between">
+              <h3 className="text-white font-bold text-sm mb-4 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-emerald-400" />
+                  {t.accountHealth[lang]}
+              </h3>
+              <div className="space-y-3">
+                  {accounts.length === 0 ? (
+                      <div className="text-xs text-slate-500 italic">No accounts connected</div>
+                  ) : (
+                      accounts.map(acc => {
+                          const status = getAccountHealth(acc);
+                          return (
+                              <div key={acc.id} className="flex justify-between items-center text-xs">
+                                  <div className="flex items-center gap-2">
+                                      <div className={`w-1.5 h-1.5 rounded-full ${status === 'healthy' ? 'bg-emerald-500' : status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                                      <span className="text-slate-300">{acc.name}</span>
+                                  </div>
+                                  {status === 'warning' && <Badge variant="warning">{t.tokenExpiring[lang]}</Badge>}
+                                  {status === 'expired' && <Badge variant="error">Expired</Badge>}
+                                  {status === 'healthy' && <span className="text-emerald-500 font-medium">OK</span>}
+                              </div>
+                          );
+                      })
+                  )}
               </div>
           </div>
-      )}
+      </div>
 
       {/* Main Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

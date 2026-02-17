@@ -12,9 +12,35 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
-    role VARCHAR(20) CHECK (role IN ('admin', 'user')) DEFAULT 'user',
+    role VARCHAR(20) CHECK (role IN ('admin', 'owner', 'manager')) DEFAULT 'owner',
     subscription_plan VARCHAR(50) DEFAULT 'free',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 1.1 WORKSPACE MEMBERS (Team)
+-- ==========================================
+CREATE TABLE workspace_members (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE, -- Owner's ID
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL, -- Can be null if invited
+    email VARCHAR(255) NOT NULL,
+    name VARCHAR(100),
+    role VARCHAR(20) CHECK (role IN ('owner', 'manager')) DEFAULT 'manager',
+    status VARCHAR(20) CHECK (status IN ('active', 'pending')) DEFAULT 'pending',
+    invited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    joined_at TIMESTAMP WITH TIME ZONE
+);
+
+-- ==========================================
+-- 1.2 EMAIL PREFERENCES
+-- ==========================================
+CREATE TABLE email_preferences (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    notify_on_publish_fail BOOLEAN DEFAULT TRUE,
+    notify_on_token_expiry BOOLEAN DEFAULT TRUE,
+    notify_on_weekly_report BOOLEAN DEFAULT FALSE,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -255,16 +281,14 @@ CREATE TABLE subscriptions (
 );
 
 -- ==========================================
--- 19. AUDIT LOGS (Security)
+-- 19. AUDIT / ACTIVITY LOGS (Security)
 -- ==========================================
-CREATE TABLE audit_logs (
+CREATE TABLE activity_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    workspace_id UUID NOT NULL REFERENCES users(id),
     user_id UUID NOT NULL REFERENCES users(id),
-    action VARCHAR(50) NOT NULL,
-    target_id UUID,
-    ip_address VARCHAR(45),
-    user_agent TEXT,
-    details JSONB,
+    action_type VARCHAR(50) NOT NULL,
+    metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -290,7 +314,8 @@ CREATE INDEX idx_orders_user_id ON orders(user_id);
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX idx_connected_accounts_user_id ON connected_accounts(user_id);
 CREATE INDEX idx_publish_logs_user_id ON publish_logs(user_id);
-CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_activity_logs_workspace_id ON activity_logs(workspace_id);
+CREATE INDEX idx_workspace_members_workspace_id ON workspace_members(workspace_id);
 
 -- Performance Lookups
 CREATE INDEX idx_products_status ON products(status);
@@ -321,8 +346,5 @@ ALTER TABLE publish_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
-ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
-
--- EXAMPLE POLICIES (Conceptual)
--- CREATE POLICY product_isolation ON products USING (user_id = auth.uid());
--- CREATE POLICY account_isolation ON connected_accounts USING (user_id = auth.uid());
+ALTER TABLE activity_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workspace_members ENABLE ROW LEVEL SECURITY;

@@ -17,6 +17,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const t = TEXTS;
+  const user = authService.getCurrentUser();
 
   const NavContent = () => (
     <>
@@ -31,6 +32,11 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
 
       <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
         {MENU_ITEMS.map((item) => {
+          // Role-based Access Control for Menu
+          if (item.roles && user && !item.roles.includes(user.role)) {
+              return null;
+          }
+
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
           return (
@@ -53,6 +59,12 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
       </div>
 
       <div className="p-4 border-t border-slate-800">
+        <div className="mb-4 px-2">
+            <div className="text-xs text-slate-500 uppercase font-bold mb-1">{t.role[lang]}</div>
+            <div className="text-sm text-white font-medium capitalize bg-slate-800/50 px-2 py-1 rounded inline-block">
+                {user?.role === 'owner' ? t.owner[lang] : t.manager[lang]}
+            </div>
+        </div>
         <button
           onClick={onLogout}
           className="flex items-center gap-3 w-full px-3 py-2.5 text-slate-400 hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/5"

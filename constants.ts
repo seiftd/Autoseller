@@ -10,10 +10,14 @@ import {
   BarChart3,
   CreditCard,
   Truck,
-  Globe
+  Globe,
+  Users,
+  History,
+  Activity
 } from 'lucide-react';
 
 export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: string }> = {
+  // ... existing translations ...
   heroTitle: {
     en: "Sell Smarter.",
     fr: "Vendez Plus Intelligemment.",
@@ -189,7 +193,6 @@ export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: s
       fr: "Pays & Livraison",
       ar: "الدول والتوصيل"
   },
-  // Showcase Section Translations
   showcaseSectionTitle: {
     en: "How ReplyGenie Works in Algeria",
     fr: "Comment ReplyGenie fonctionne en Algérie",
@@ -210,7 +213,6 @@ export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: s
     fr: "Commencez Gratuitement",
     ar: "ابدأ الآن مجاناً"
   },
-  // New Dashboard Translations
   systemOperational: { en: "System Operational", fr: "Système Opérationnel", ar: "النظام يعمل بكفاءة" },
   degradedPerformance: { en: "Degraded Performance", fr: "Performance Dégradée", ar: "أداء النظام منخفض" },
   dailyAiUsage: { en: "Daily AI Reply Usage", fr: "Utilisation IA Quotidienne", ar: "استهلاك الرد الذكي اليومي" },
@@ -224,8 +226,6 @@ export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: s
   liveOnSocials: { en: "Live on Socials", fr: "En ligne", ar: "منشور على الحسابات" },
   noOrders: { en: "No orders yet.", fr: "Pas encore de commandes.", ar: "لا توجد طلبات حتى الآن." },
   noOrdersSub: { en: "Use the Simulator to create test orders.", fr: "Utilisez le simulateur pour créer des commandes test.", ar: "استخدم المحاكي لإنشاء طلبات تجريبية." },
-  
-  // Product Page
   productGallery: { en: "Product Gallery", fr: "Galerie Produit", ar: "معرض الصور" },
   primary: { en: "Primary", fr: "Principale", ar: "الرئيسية" },
   makePrimary: { en: "Make Primary", fr: "Définir Principale", ar: "تعيين كرئيسية" },
@@ -248,8 +248,6 @@ export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: s
   createNewProduct: { en: "Create New Product", fr: "Créer Nouveau Produit", ar: "إضافة منتج جديد" },
   noProducts: { en: "No Products Yet", fr: "Pas encore de produits", ar: "لا توجد منتجات حالياً" },
   createFirstProduct: { en: "Create your first product to start selling on Facebook and Instagram automatically.", fr: "Créez votre premier produit pour commencer à vendre.", ar: "ابدأ بإضافة أول منتج لتفعيل البيع التلقائي على فيسبوك وإنستغرام." },
-
-  // Settings
   activeSessions: { en: "Active Sessions", fr: "Sessions Actives", ar: "الجلسات النشطة" },
   integrations: { en: "Integrations", fr: "Intégrations", ar: "التكاملات" },
   security: { en: "Security", fr: "Sécurité", ar: "الأمان" },
@@ -260,18 +258,35 @@ export const TEXTS: Translation & Record<string, { en: string, fr: string, ar: s
   enable2FA: { en: "Enable 2-Factor Auth", fr: "Activer 2FA", ar: "تفعيل المصادقة الثنائية" },
   saveChanges: { en: "Save Changes", fr: "Enregistrer", ar: "حفظ التغييرات" },
   manageDevices: { en: "Manage devices where you are currently logged in.", fr: "Gérer les appareils connectés.", ar: "إدارة الأجهزة المتصلة حالياً بحسابك." },
-  updatePass: { en: "Update your password or enable 2FA.", fr: "Mettez à jour mot de passe ou 2FA.", ar: "تحديث كلمة المرور أو تفعيل الحماية الثنائية." }
+  updatePass: { en: "Update your password or enable 2FA.", fr: "Mettez à jour mot de passe ou 2FA.", ar: "تحديث كلمة المرور أو تفعيل الحماية الثنائية." },
+  
+  // New Translations for V3 Update
+  team: { en: "Team", fr: "Équipe", ar: "فريق العمل" },
+  history: { en: "Publish History", fr: "Historique", ar: "سجل النشر" },
+  activity: { en: "Activity", fr: "Activité", ar: "النشاطات" },
+  export: { en: "Export CSV", fr: "Exporter CSV", ar: "تصدير CSV" },
+  role: { en: "Role", fr: "Rôle", ar: "الدور" },
+  owner: { en: "Owner", fr: "Propriétaire", ar: "المالك" },
+  manager: { en: "Manager", fr: "Manager", ar: "مدير" },
+  invite: { en: "Invite Member", fr: "Inviter un membre", ar: "دعوة عضو" },
+  accountHealth: { en: "Account Health", fr: "Santé du compte", ar: "حالة الحساب" },
+  healthy: { en: "Healthy", fr: "Sain", ar: "سليم" },
+  attentionNeeded: { en: "Attention Needed", fr: "Attention Requise", ar: "يتطلب اهتماماً" },
+  tokenExpiring: { en: "Token Expiring Soon", fr: "Jeton expire bientôt", ar: "رمز الوصول سينتهي قريباً" },
 };
 
 export const MENU_ITEMS = [
-  { path: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard' },
-  { path: '/products', icon: ShoppingBag, labelKey: 'products' },
-  { path: '/orders', icon: Package, labelKey: 'orders' },
-  { path: '/inbox', icon: MessageSquareText, labelKey: 'inbox' },
-  { path: '/connected-accounts', icon: Share2, labelKey: 'connectedAccounts' },
-  { path: '/delivery-settings', icon: Settings, labelKey: 'deliverySettings' },
-  { path: '/analytics', icon: BarChart3, labelKey: 'analytics' },
-  { path: '/billing', icon: CreditCard, labelKey: 'billing' },
+  { path: '/dashboard', icon: LayoutDashboard, labelKey: 'dashboard', roles: ['owner', 'manager'] },
+  { path: '/products', icon: ShoppingBag, labelKey: 'products', roles: ['owner', 'manager'] },
+  { path: '/orders', icon: Package, labelKey: 'orders', roles: ['owner', 'manager'] },
+  { path: '/inbox', icon: MessageSquareText, labelKey: 'inbox', roles: ['owner', 'manager'] },
+  { path: '/history', icon: History, labelKey: 'history', roles: ['owner', 'manager'] },
+  { path: '/connected-accounts', icon: Share2, labelKey: 'connectedAccounts', roles: ['owner'] },
+  { path: '/team', icon: Users, labelKey: 'team', roles: ['owner'] },
+  { path: '/activity', icon: Activity, labelKey: 'activity', roles: ['owner'] },
+  { path: '/delivery-settings', icon: Settings, labelKey: 'deliverySettings', roles: ['owner'] },
+  { path: '/analytics', icon: BarChart3, labelKey: 'analytics', roles: ['owner', 'manager'] },
+  { path: '/billing', icon: CreditCard, labelKey: 'billing', roles: ['owner'] },
 ];
 
 export const ALGERIA_WILAYAS = [

@@ -4,7 +4,7 @@ export type Platform = 'Facebook' | 'Instagram';
 
 export type Currency = 'DZD' | 'EUR' | 'USD' | 'MAD' | 'TND';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'owner' | 'manager' | 'admin'; // admin is system admin
 export type SubscriptionPlan = 'free' | 'pro' | 'business';
 
 export interface User {
@@ -14,6 +14,17 @@ export interface User {
   role: UserRole;
   plan: SubscriptionPlan;
   createdAt: number;
+}
+
+export interface WorkspaceMember {
+  id: string;
+  workspaceId: string; // usually owner's user_id
+  userId: string;
+  email: string;
+  name: string;
+  role: 'owner' | 'manager';
+  status: 'active' | 'pending';
+  invitedAt: number;
 }
 
 export interface Session {
@@ -33,6 +44,7 @@ export interface SocialAccount {
   connected: boolean;
   avatarUrl?: string;
   lastSync: number;
+  tokenExpiry?: number; // New: For Health Monitor
   // Facebook Specifics
   accessToken?: string; // Encrypted
   pageId?: string;
@@ -225,6 +237,11 @@ export interface SystemHealth {
   webhookSuccessRate: number;
   uptime: number;
   lastError?: ErrorLog;
+  accountHealth: {
+    healthy: boolean;
+    tokenExpiringSoon: boolean;
+    tokenExpired: boolean;
+  };
 }
 
 // --- SECURITY & COMPLIANCE TYPES ---
@@ -238,6 +255,8 @@ export interface AuditLog {
   userAgent?: string;
   timestamp: number;
   details?: any;
+  actorRole?: UserRole;
+  actorName?: string;
 }
 
 export interface SpamProtectionLog {
@@ -246,4 +265,11 @@ export interface SpamProtectionLog {
   reason: 'rate_limit' | 'reply_loop' | 'duplicate_content' | 'bot_loop';
   blockedAt: number;
   details: any;
+}
+
+export interface NotificationPreferences {
+  userId: string;
+  notifyOnPublishFail: boolean;
+  notifyOnTokenExpiry: boolean;
+  notifyOnWeeklyReport: boolean;
 }

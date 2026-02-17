@@ -25,7 +25,7 @@ const findUserByPageId = (pageId: string): { user: User, accessToken: string } |
         id: account.userId,
         email: 'user@example.com',
         fullName: 'System User',
-        role: account.userId.includes('admin') ? 'admin' : 'user',
+        role: account.userId.includes('admin') ? 'admin' : 'owner',
         plan: account.userId.includes('free') ? 'free' : 'business',
         createdAt: Date.now()
     };

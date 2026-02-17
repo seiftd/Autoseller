@@ -9,6 +9,9 @@ import { Orders } from './pages/Orders';
 import { Inbox } from './pages/Inbox';
 import { ConnectedAccounts } from './pages/ConnectedAccounts';
 import { Settings } from './pages/Settings';
+import { Team } from './pages/Team'; // New
+import { PublishHistory } from './pages/PublishHistory'; // New
+import { Activity } from './pages/Activity'; // New
 import { PrivacyPolicy, TermsOfService, DataDeletion } from './pages/LegalPages';
 import { authService } from './services/authService';
 import { schedulerService } from './services/schedulerService';
@@ -22,10 +25,16 @@ const ProtectedRoute: React.FC<{
   lang: Language; 
   setLang: (l: Language) => void;
   onLogout: () => void;
-}> = ({ children, lang, setLang, onLogout }) => {
+  requiredRole?: 'owner' | 'manager';
+}> = ({ children, lang, setLang, onLogout, requiredRole }) => {
   if (!authService.isAuthenticated()) {
     return <Navigate to="/login" replace />;
   }
+  
+  if (requiredRole && !authService.hasRole(requiredRole)) {
+      return <Navigate to="/dashboard" replace />;
+  }
+
   return <Layout lang={lang} setLang={setLang} onLogout={onLogout}>{children}</Layout>;
 };
 
@@ -91,13 +100,30 @@ const AppContent: React.FC = () => {
           <Inbox lang={lang} />
         </ProtectedRoute>
       } />
-      <Route path="/connected-accounts" element={
+      <Route path="/history" element={
         <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <PublishHistory lang={lang} />
+        </ProtectedRoute>
+      } />
+      
+      {/* Owner Only Routes */}
+      <Route path="/connected-accounts" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
           <ConnectedAccounts lang={lang} />
         </ProtectedRoute>
       } />
+      <Route path="/team" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
+          <Team lang={lang} />
+        </ProtectedRoute>
+      } />
+      <Route path="/activity" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
+          <Activity lang={lang} />
+        </ProtectedRoute>
+      } />
       <Route path="/delivery-settings" element={
-        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
           <Settings lang={lang} />
         </ProtectedRoute>
       } />
@@ -109,7 +135,7 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       <Route path="/billing" element={
-        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout} requiredRole="owner">
           <div className="text-white text-center py-20">Billing Module (Coming Soon)</div>
         </ProtectedRoute>
       } />

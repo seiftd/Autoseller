@@ -1,13 +1,6 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog, WorkspaceMember, NotificationPreferences } from '../types';
 import { DEFAULT_COUNTRIES } from '../constants';
 import { authService } from './authService';
-// Note: We avoid importing securityService here to prevent circular dependency if securityService imports storageService
-// We will move the "Encryption" call to the logic layer (ConnectedAccounts page) or use a lightweight helper if needed.
-// However, since we defined securityService in a separate file, let's see. 
-// securityService imports storageService for logging. storageService imports securityService for decryption?
-// Circular dependency risk.
-// SOLUTION: storageService only STORES encrypted strings. The Service using the data (e.g. facebookService) calls securityService to decrypt.
-// storageService doesn't need to decrypt.
 
 const PRODUCTS_KEY = 'autoseller_products';
 const ORDERS_KEY = 'autoseller_orders';
@@ -22,6 +15,8 @@ const FAILED_JOBS_KEY = 'autoseller_failed_jobs';
 const ERROR_LOGS_KEY = 'autoseller_error_logs';
 const AUDIT_LOGS_KEY = 'autoseller_audit_logs';
 const SPAM_LOGS_KEY = 'autoseller_spam_logs';
+const WORKSPACE_MEMBERS_KEY = 'autoseller_workspace_members';
+const NOTIFICATION_PREFS_KEY = 'autoseller_notification_prefs';
 
 // Helper for Multi-Tenancy
 // In a real DB, this is enforced by WHERE user_id = ?
@@ -32,7 +27,7 @@ const getTenantId = () => authService.getTenantId();
 const MOCK_USER_ID = 'user_123_admin'; // Default mock owner
 
 const MOCK_ACCOUNTS: SocialAccount[] = [
-  { id: '1', userId: MOCK_USER_ID, platform: 'Facebook', name: 'Tech Store DZ', connected: true, lastSync: Date.now() },
+  { id: '1', userId: MOCK_USER_ID, platform: 'Facebook', name: 'Tech Store DZ', connected: true, lastSync: Date.now(), tokenExpiry: Date.now() + 86400000 * 5 }, // 5 days left (warning state)
   { id: '2', userId: MOCK_USER_ID, platform: 'Instagram', name: '@techstoredz', connected: false, lastSync: 0 },
 ];
 
@@ -71,13 +66,7 @@ const MOCK_PRODUCTS: Product[] = [
     lastPublishedAt: Date.now() - 86400000,
     nextPublishAt: Date.now() + (6 * 86400000)
   },
-  // ... other mock products would also need userId
 ];
-
-const MOCK_SETTINGS: DeliverySettings = {
-    defaultCost: 600,
-    shippingCompany: 'Yalidine'
-};
 
 export const storageService = {
   // COUNTRIES (Global Data - No Tenant Isolation needed)
@@ -103,16 +92,12 @@ export const storageService = {
     return all.filter(a => a.userId === uid);
   },
   
-  // Note: encryption happens before saving in the UI layer calling this
   saveAccounts: (accounts: SocialAccount[]) => {
-      // In a real DB, we would save only the user's accounts. 
-      // Here with localStorage, we must read ALL, remove user's current, add new user's, save ALL.
       const uid = getTenantId();
       const allData = localStorage.getItem(ACCOUNTS_KEY);
       let all: SocialAccount[] = allData ? JSON.parse(allData) : MOCK_ACCOUNTS;
       
       const otherUsersAccounts = all.filter(a => a.userId !== uid);
-      // Ensure all new accounts have the userId
       const accountsWithId = accounts.map(a => ({ ...a, userId: uid }));
       
       localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([...otherUsersAccounts, ...accountsWithId]));
@@ -120,8 +105,8 @@ export const storageService = {
 
   toggleAccount: (id: string) => {
     const uid = getTenantId();
-    const all = storageService.getAllAccountsRaw(); // Helper to get everything
-    const idx = all.findIndex(a => a.id === id && a.userId === uid); // Security Check
+    const all = storageService.getAllAccountsRaw(); 
+    const idx = all.findIndex(a => a.id === id && a.userId === uid); 
     
     if (idx >= 0) {
       all[idx].connected = !all[idx].connected;
@@ -142,8 +127,7 @@ export const storageService = {
     const all = storageService.getAllProductsRaw();
     const p = { ...product, userId: uid }; // Enforce ownership
     
-    const index = all.findIndex(item => item.id === p.id); // Global ID check is fine
-    // Security check: if updating, ensure it belongs to user
+    const index = all.findIndex(item => item.id === p.id); 
     if (index >= 0) {
         if (all[index].userId !== uid) throw new Error("Unauthorized access to product");
         all[index] = p;
@@ -162,7 +146,7 @@ export const storageService = {
   deleteProduct: (id: string) => {
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
-    const filtered = all.filter(p => !(p.id === id && p.userId === uid)); // Only delete if owned
+    const filtered = all.filter(p => !(p.id === id && p.userId === uid)); 
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(filtered));
   },
 
@@ -174,7 +158,6 @@ export const storageService = {
     return all.filter(o => o.userId === uid);
   },
   addOrder: (order: Order) => {
-    // Orders typically come from Webhooks (System), so userId should be set by the worker
     const all = storageService.getAllOrdersRaw();
     all.unshift(order);
     localStorage.setItem(ORDERS_KEY, JSON.stringify(all));
@@ -188,14 +171,13 @@ export const storageService = {
       return all.filter(l => l.userId === uid);
   },
   addPublishLog: (log: PublishLog) => {
-      // Typically system action, log contains userId
       const all = storageService.getAllPublishLogsRaw();
       all.unshift(log);
-      if (all.length > 500) all.pop(); // Global cap for localStorage
+      if (all.length > 500) all.pop(); 
       localStorage.setItem(PUBLISH_LOGS_KEY, JSON.stringify(all));
   },
 
-  // AUDIT LOGS (Tenant Isolated)
+  // AUDIT / ACTIVITY LOGS (Tenant Isolated)
   getAuditLogs: (): AuditLog[] => {
       const uid = getTenantId();
       const data = localStorage.getItem(AUDIT_LOGS_KEY);
@@ -225,7 +207,46 @@ export const storageService = {
       localStorage.setItem(SPAM_LOGS_KEY, JSON.stringify(all));
   },
 
-  // WEBHOOK EVENTS (System Level - No Isolation needed for queue, but processing needs care)
+  // WORKSPACE MEMBERS
+  getWorkspaceMembers: (): WorkspaceMember[] => {
+      const uid = getTenantId();
+      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+      const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+      return all.filter(m => m.workspaceId === uid);
+  },
+  addWorkspaceMember: (member: WorkspaceMember) => {
+      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+      const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+      all.push(member);
+      localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
+  },
+  removeWorkspaceMember: (memberId: string) => {
+      const uid = getTenantId();
+      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+      let all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+      all = all.filter(m => !(m.id === memberId && m.workspaceId === uid));
+      localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
+  },
+
+  // NOTIFICATION PREFERENCES
+  getNotificationPreferences: (): NotificationPreferences => {
+      const uid = getTenantId();
+      const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
+      const all: NotificationPreferences[] = data ? JSON.parse(data) : [];
+      return all.find(p => p.userId === uid) || { 
+          userId: uid, notifyOnPublishFail: true, notifyOnTokenExpiry: true, notifyOnWeeklyReport: false 
+      };
+  },
+  saveNotificationPreferences: (prefs: NotificationPreferences) => {
+      const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
+      let all: NotificationPreferences[] = data ? JSON.parse(data) : [];
+      const idx = all.findIndex(p => p.userId === prefs.userId);
+      if (idx >= 0) all[idx] = prefs;
+      else all.push(prefs);
+      localStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(all));
+  },
+
+  // SYSTEM LEVEL (Events, Jobs, Errors)
   getWebhookEvents: (): WebhookEvent[] => {
     const data = localStorage.getItem(WEBHOOK_EVENTS_KEY);
     return data ? JSON.parse(data) : [];
@@ -233,11 +254,8 @@ export const storageService = {
   saveWebhookEvent: (event: WebhookEvent) => {
     const list = storageService.getWebhookEvents();
     const existingIndex = list.findIndex(e => e.id === event.id);
-    if (existingIndex >= 0) {
-      list[existingIndex] = event;
-    } else {
-      list.unshift(event);
-    }
+    if (existingIndex >= 0) list[existingIndex] = event;
+    else list.unshift(event);
     if (list.length > 500) list.length = 500;
     localStorage.setItem(WEBHOOK_EVENTS_KEY, JSON.stringify(list));
   },
@@ -245,8 +263,6 @@ export const storageService = {
     const list = storageService.getWebhookEvents();
     return list.find(e => e.platformEventId === platformId);
   },
-
-  // JOBS (System Level)
   getJobs: (): Job[] => {
     const data = localStorage.getItem(JOBS_KEY);
     return data ? JSON.parse(data) : [];
@@ -263,8 +279,6 @@ export const storageService = {
     const list = storageService.getJobs().filter(j => j.id !== id);
     localStorage.setItem(JOBS_KEY, JSON.stringify(list));
   },
-
-  // ERROR LOGS (System Level)
   getErrorLogs: (): ErrorLog[] => {
     const data = localStorage.getItem(ERROR_LOGS_KEY);
     return data ? JSON.parse(data) : [];
@@ -275,8 +289,6 @@ export const storageService = {
     if (list.length > 100) list.pop();
     localStorage.setItem(ERROR_LOGS_KEY, JSON.stringify(list));
   },
-  
-  // FAILED JOBS (System Level)
   getFailedJobs: (): Job[] => {
       const data = localStorage.getItem(FAILED_JOBS_KEY);
       return data ? JSON.parse(data) : [];
@@ -293,17 +305,17 @@ export const storageService = {
 
   // STATS (Tenant Isolated)
   getStats: (): UserStats => {
-    const orders = storageService.getOrders(); // Already filtered
-    const products = storageService.getProducts(); // Already filtered
-    const accounts = storageService.getAccounts(); // Already filtered
-    const logs = storageService.getPublishLogs(); // Already filtered
+    const orders = storageService.getOrders();
+    const products = storageService.getProducts();
+    const accounts = storageService.getAccounts();
+    const logs = storageService.getPublishLogs();
     
     return {
       totalOrders: orders.length,
       revenue: orders.reduce((sum, o) => sum + o.total, 0),
       activeProducts: products.filter(p => p.active).length,
       connectedAccounts: accounts.filter(a => a.connected).length,
-      messagesProcessed: 0, // Need to track processed messages per user
+      messagesProcessed: 0,
       recentOrders: orders.slice(0, 5),
       scheduledPosts: products.filter(p => p.publishStatus === 'scheduled').length,
       publishedPosts: products.filter(p => p.publishStatus === 'published').length,

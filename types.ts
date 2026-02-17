@@ -155,3 +155,46 @@ export interface Translation {
     ar: string;
   };
 }
+
+// --- NEW TYPES FOR PRODUCTION WEBHOOK SYSTEM ---
+
+export interface WebhookEvent {
+  id: string;
+  platformEventId: string; // Unique ID from platform to ensure idempotency
+  platform: Platform;
+  payload: any;
+  receivedAt: number;
+  status: 'pending' | 'processed' | 'failed' | 'ignored';
+  retryCount: number;
+  errorMessage?: string;
+}
+
+export interface Job {
+  id: string;
+  type: 'process_webhook' | 'publish_product';
+  payload: any;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  createdAt: number;
+  attempts: number;
+  maxAttempts: number;
+  nextAttemptAt: number;
+  error?: string;
+}
+
+export interface ErrorLog {
+  id: string;
+  type: 'webhook' | 'job' | 'api' | 'security';
+  severity: 'info' | 'warning' | 'error' | 'critical';
+  message: string;
+  stack?: string;
+  metadata?: any;
+  timestamp: number;
+}
+
+export interface SystemHealth {
+  queueSize: number;
+  failedJobs: number;
+  webhookSuccessRate: number;
+  uptime: number;
+  lastError?: ErrorLog;
+}

@@ -79,6 +79,48 @@ erDiagram
         string error_message
     }
 
+    WEBHOOK_EVENTS {
+        uuid id PK
+        string platform_event_id "Unique Index"
+        string platform
+        jsonb payload
+        timestamp received_at
+        string status "pending|processed|failed"
+        int retry_count
+        string error_message
+    }
+
+    JOBS {
+        uuid id PK
+        string type
+        jsonb payload
+        string status "pending|processing|completed|failed"
+        timestamp created_at
+        int attempts
+        int max_attempts
+        timestamp next_attempt_at
+        string error
+    }
+
+    FAILED_JOBS {
+        uuid id PK
+        uuid original_job_id FK
+        string type
+        jsonb payload
+        string failure_reason
+        timestamp failed_at
+    }
+
+    ERROR_LOGS {
+        uuid id PK
+        string type
+        string severity
+        string message
+        string stack_trace
+        jsonb metadata
+        timestamp timestamp
+    }
+
     PRODUCT_IMAGES {
         uuid id PK
         uuid product_id FK
@@ -134,14 +176,6 @@ erDiagram
         timestamp created_at
     }
 
-    WEBHOOK_LOGS {
-        uuid id PK
-        string platform
-        jsonb payload
-        timestamp received_at
-        string processed_status
-    }
-
     SUBSCRIPTIONS {
         uuid id PK
         uuid user_id FK
@@ -174,4 +208,6 @@ erDiagram
     
     STATES ||--o{ PRODUCT_DELIVERY : defines
     STATES ||--o{ ORDERS : location
+    
+    JOBS ||--o{ FAILED_JOBS : creates
 ```

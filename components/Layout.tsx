@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { TEXTS, MENU_ITEMS } from '../constants';
 import { Language } from '../types';
 import { LanguageSwitcher } from './LanguageSwitcher';
-import { Bot, LogOut, Menu, X } from 'lucide-react';
+import { Bot, LogOut, Menu, X, Shield, FileText } from 'lucide-react';
 import { authService } from '../services/authService';
 
 interface Props {
@@ -50,6 +50,18 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
             </Link>
           );
         })}
+        
+        {/* Dev Link */}
+        <div className="pt-4 mt-4 border-t border-slate-800/50">
+           <Link
+              to="/compliance-kit"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-500 hover:bg-emerald-500/10 transition-all"
+            >
+              <Shield size={18} />
+              Compliance Kit
+            </Link>
+        </div>
       </div>
 
       <div className="p-4 border-t border-slate-800">
@@ -92,12 +104,21 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
       )}
 
       {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 md:ml-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden flex flex-col min-h-screen">
+        <div className="max-w-6xl mx-auto w-full flex-1">
           <div className="flex justify-end mb-6">
              <LanguageSwitcher current={lang} onChange={setLang} />
           </div>
           {children}
+        </div>
+        
+        {/* Dashboard Footer for Legal Links */}
+        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-wrap gap-4 justify-center md:justify-end text-xs text-slate-500">
+            <Link to="/privacy-policy" className="hover:text-blue-400 transition-colors">Privacy Policy</Link>
+            <span>•</span>
+            <Link to="/terms-of-service" className="hover:text-blue-400 transition-colors">Terms of Service</Link>
+            <span>•</span>
+            <Link to="/data-deletion" className="hover:text-blue-400 transition-colors">Data Deletion</Link>
         </div>
       </main>
     </div>

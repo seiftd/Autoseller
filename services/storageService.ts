@@ -1,4 +1,4 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog } from '../types';
 import { DEFAULT_COUNTRIES } from '../constants';
 
 const PRODUCTS_KEY = 'autoseller_products';
@@ -8,6 +8,10 @@ const CONVERSATIONS_KEY = 'autoseller_conversations';
 const SETTINGS_KEY = 'autoseller_settings';
 const COUNTRIES_KEY = 'autoseller_countries';
 const PUBLISH_LOGS_KEY = 'autoseller_publish_logs';
+const WEBHOOK_EVENTS_KEY = 'autoseller_webhook_events';
+const JOBS_KEY = 'autoseller_jobs';
+const FAILED_JOBS_KEY = 'autoseller_failed_jobs';
+const ERROR_LOGS_KEY = 'autoseller_error_logs';
 
 // Mock Data Initialization
 const MOCK_ACCOUNTS: SocialAccount[] = [
@@ -202,9 +206,75 @@ export const storageService = {
   addPublishLog: (log: PublishLog) => {
       const list = storageService.getPublishLogs();
       list.unshift(log);
-      // Keep only last 100 logs
       if (list.length > 100) list.pop();
       localStorage.setItem(PUBLISH_LOGS_KEY, JSON.stringify(list));
+  },
+
+  // WEBHOOK EVENTS (Idempotency)
+  getWebhookEvents: (): WebhookEvent[] => {
+    const data = localStorage.getItem(WEBHOOK_EVENTS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+  saveWebhookEvent: (event: WebhookEvent) => {
+    const list = storageService.getWebhookEvents();
+    const existingIndex = list.findIndex(e => e.id === event.id);
+    if (existingIndex >= 0) {
+      list[existingIndex] = event;
+    } else {
+      list.unshift(event);
+    }
+    // Limit to last 500 events
+    if (list.length > 500) list.length = 500;
+    localStorage.setItem(WEBHOOK_EVENTS_KEY, JSON.stringify(list));
+  },
+  findWebhookEventByPlatformId: (platformId: string): WebhookEvent | undefined => {
+    const list = storageService.getWebhookEvents();
+    return list.find(e => e.platformEventId === platformId);
+  },
+
+  // JOBS (Queue)
+  getJobs: (): Job[] => {
+    const data = localStorage.getItem(JOBS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+  saveJobs: (jobs: Job[]) => {
+    localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
+  },
+  addJob: (job: Job) => {
+    const list = storageService.getJobs();
+    list.push(job);
+    localStorage.setItem(JOBS_KEY, JSON.stringify(list));
+  },
+  removeJob: (id: string) => {
+    const list = storageService.getJobs().filter(j => j.id !== id);
+    localStorage.setItem(JOBS_KEY, JSON.stringify(list));
+  },
+
+  // ERROR LOGS
+  getErrorLogs: (): ErrorLog[] => {
+    const data = localStorage.getItem(ERROR_LOGS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+  logError: (log: ErrorLog) => {
+    const list = storageService.getErrorLogs();
+    list.unshift(log);
+    if (list.length > 100) list.pop();
+    localStorage.setItem(ERROR_LOGS_KEY, JSON.stringify(list));
+  },
+  
+  // FAILED JOBS (Dead Letter)
+  getFailedJobs: (): Job[] => {
+      const data = localStorage.getItem(FAILED_JOBS_KEY);
+      return data ? JSON.parse(data) : [];
+  },
+  saveFailedJob: (job: Job) => {
+      const list = storageService.getFailedJobs();
+      list.unshift(job);
+      localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
+  },
+  removeFailedJob: (id: string) => {
+      const list = storageService.getFailedJobs().filter(j => j.id !== id);
+      localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
   },
 
   // STATS
@@ -219,7 +289,7 @@ export const storageService = {
       revenue: orders.reduce((sum, o) => sum + o.total, 0),
       activeProducts: products.filter(p => p.active).length,
       connectedAccounts: accounts.filter(a => a.connected).length,
-      messagesProcessed: 342, // Mock
+      messagesProcessed: storageService.getWebhookEvents().filter(e => e.status === 'processed').length,
       recentOrders: orders.slice(0, 5),
       scheduledPosts: products.filter(p => p.publishStatus === 'scheduled').length,
       publishedPosts: products.filter(p => p.publishStatus === 'published').length,

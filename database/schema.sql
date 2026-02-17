@@ -174,18 +174,61 @@ CREATE TABLE messages (
 );
 
 -- ==========================================
--- 13. WEBHOOK LOGS
+-- 13. WEBHOOK EVENTS (Idempotency & Auditing)
 -- ==========================================
-CREATE TABLE webhook_logs (
+CREATE TABLE webhook_events (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    platform_event_id VARCHAR(255) UNIQUE NOT NULL,
     platform VARCHAR(50),
     payload JSONB,
     received_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    processed_status VARCHAR(20) CHECK (processed_status IN ('processed', 'failed', 'ignored'))
+    status VARCHAR(20) CHECK (status IN ('pending', 'processed', 'failed', 'ignored')) DEFAULT 'pending',
+    retry_count INT DEFAULT 0,
+    error_message TEXT
 );
 
 -- ==========================================
--- 14. PUBLISH LOGS
+-- 14. JOBS (Queue System)
+-- ==========================================
+CREATE TABLE jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type VARCHAR(50) NOT NULL,
+    payload JSONB,
+    status VARCHAR(20) CHECK (status IN ('pending', 'processing', 'completed', 'failed')) DEFAULT 'pending',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    attempts INT DEFAULT 0,
+    max_attempts INT DEFAULT 3,
+    next_attempt_at TIMESTAMP WITH TIME ZONE,
+    error TEXT
+);
+
+-- ==========================================
+-- 15. FAILED JOBS (Dead Letter Queue)
+-- ==========================================
+CREATE TABLE failed_jobs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    original_job_id UUID REFERENCES jobs(id),
+    type VARCHAR(50),
+    payload JSONB,
+    failure_reason TEXT,
+    failed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 16. ERROR LOGS (Monitoring)
+-- ==========================================
+CREATE TABLE error_logs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    type VARCHAR(50),
+    severity VARCHAR(20),
+    message TEXT,
+    stack_trace TEXT,
+    metadata JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ==========================================
+-- 17. PUBLISH LOGS
 -- ==========================================
 CREATE TABLE publish_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -198,7 +241,7 @@ CREATE TABLE publish_logs (
 );
 
 -- ==========================================
--- 15. SUBSCRIPTIONS
+-- 18. SUBSCRIPTIONS
 -- ==========================================
 CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -231,6 +274,11 @@ CREATE INDEX idx_messages_conversation ON messages(conversation_id);
 CREATE INDEX idx_conversations_last_message ON conversations(last_message_at DESC);
 CREATE INDEX idx_states_country ON states(country_id);
 
+-- System Indexes
+CREATE INDEX idx_webhook_events_platform_id ON webhook_events(platform_event_id);
+CREATE INDEX idx_jobs_status_next_attempt ON jobs(status, next_attempt_at);
+CREATE INDEX idx_error_logs_timestamp ON error_logs(timestamp DESC);
+
 -- ==========================================
 -- SECURITY (Row Level Security)
 -- ==========================================
@@ -242,3 +290,6 @@ ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE connected_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE publish_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE webhook_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;

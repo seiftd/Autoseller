@@ -9,8 +9,11 @@ import { Orders } from './pages/Orders';
 import { Inbox } from './pages/Inbox';
 import { ConnectedAccounts } from './pages/ConnectedAccounts';
 import { Settings } from './pages/Settings';
+import { PrivacyPolicy, TermsOfService, DataDeletion } from './pages/LegalPages';
+import { ComplianceKit } from './pages/ComplianceKit';
 import { authService } from './services/authService';
 import { schedulerService } from './services/schedulerService';
+import { queueService } from './services/queueService';
 import { Language } from './types';
 
 // Protected Route Wrapper with Layout
@@ -38,8 +41,9 @@ const AppContent: React.FC = () => {
       document.documentElement.dir = 'ltr';
     }
     
-    // Start Background Scheduler
+    // Start Background Services
     schedulerService.start();
+    queueService.start(); // Start Job Queue Processor
   }, [lang]);
 
   const handleLogin = () => {
@@ -60,6 +64,11 @@ const AppContent: React.FC = () => {
           isAuthenticated ? <Navigate to="/dashboard" /> : <Login lang={lang} setLang={setLang} onLogin={handleLogin} />
         } 
       />
+      
+      {/* Public Legal Pages */}
+      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/data-deletion" element={<DataDeletion />} />
       
       {/* Protected Routes */}
       <Route path="/dashboard" element={
@@ -90,6 +99,13 @@ const AppContent: React.FC = () => {
       <Route path="/delivery-settings" element={
         <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
           <Settings lang={lang} />
+        </ProtectedRoute>
+      } />
+      
+      {/* Admin / Dev Tools */}
+      <Route path="/compliance-kit" element={
+        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
+          <ComplianceKit />
         </ProtectedRoute>
       } />
       

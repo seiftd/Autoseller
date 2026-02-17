@@ -10,11 +10,11 @@ import { Inbox } from './pages/Inbox';
 import { ConnectedAccounts } from './pages/ConnectedAccounts';
 import { Settings } from './pages/Settings';
 import { PrivacyPolicy, TermsOfService, DataDeletion } from './pages/LegalPages';
-import { ComplianceKit } from './pages/ComplianceKit';
 import { authService } from './services/authService';
 import { schedulerService } from './services/schedulerService';
 import { queueService } from './services/queueService';
 import { Language } from './types';
+import { ToastProvider } from './contexts/ToastContext';
 
 // Protected Route Wrapper with Layout
 const ProtectedRoute: React.FC<{ 
@@ -102,13 +102,6 @@ const AppContent: React.FC = () => {
         </ProtectedRoute>
       } />
       
-      {/* Admin / Dev Tools */}
-      <Route path="/compliance-kit" element={
-        <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
-          <ComplianceKit />
-        </ProtectedRoute>
-      } />
-      
       {/* Placeholder Routes */}
       <Route path="/analytics" element={
         <ProtectedRoute lang={lang} setLang={setLang} onLogout={handleLogout}>
@@ -126,9 +119,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <HashRouter>
-      <AppContent />
-    </HashRouter>
+    <ToastProvider>
+      <HashRouter>
+        <AppContent />
+      </HashRouter>
+    </ToastProvider>
   );
 };
 

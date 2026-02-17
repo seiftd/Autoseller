@@ -1,4 +1,4 @@
-import { User } from '../types';
+import { User, Session } from '../types';
 
 // Mock DB of Users
 const MOCK_USERS: User[] = [
@@ -55,5 +55,20 @@ export const authService = {
   getTenantId: (): string => {
     const user = authService.getCurrentUser();
     return user ? user.id : 'public'; // 'public' or null for unauthenticated
+  },
+
+  // Security features (Mock)
+  getSessions: (): Session[] => {
+    return [
+      { id: '1', device: 'Chrome on Windows 11', location: 'Algiers, Algeria', ip: '154.121.xx.xx', lastActive: Date.now(), current: true },
+      { id: '2', device: 'Safari on iPhone 14', location: 'Oran, Algeria', ip: '129.45.xx.xx', lastActive: Date.now() - 7200000, current: false },
+      { id: '3', device: 'Firefox on MacOS', location: 'Paris, France', ip: '89.12.xx.xx', lastActive: Date.now() - 86400000, current: false },
+    ];
+  },
+
+  logoutAllSessions: async (): Promise<void> => {
+    // Mock API call delay
+    await new Promise(r => setTimeout(r, 1000));
+    console.log("Logged out all other sessions");
   }
 };

@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { storageService } from '../services/storageService';
 import { queueService } from '../services/queueService';
-import { DeliverySettings, Language, Country, WebhookEvent, Job, ErrorLog } from '../types';
+import { authService } from '../services/authService';
+import { DeliverySettings, Language, Country, WebhookEvent, Job, ErrorLog, Session } from '../types';
 import { TEXTS } from '../constants';
-import { Settings as SettingsIcon, Facebook, MessageCircle, Save, Globe, MapPin, Truck, Plus, Trash2, Activity, AlertTriangle, RefreshCw, Server, ShieldCheck } from 'lucide-react';
+import { Settings as SettingsIcon, Facebook, MessageCircle, Save, Globe, MapPin, Truck, Plus, Trash2, Activity, AlertTriangle, RefreshCw, Server, ShieldCheck, Lock, Smartphone, Monitor } from 'lucide-react';
+import { SectionHeader, Badge, EmptyState } from '../components/PremiumUI';
+import { useToast } from '../contexts/ToastContext';
 
 interface Props {
   lang: Language;
 }
 
 export const Settings: React.FC<Props> = ({ lang }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'countries' | 'health'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'countries' | 'security' | 'health'>('general');
   const [countries, setCountries] = useState<Country[]>([]);
   const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>([]);
   const [failedJobs, setFailedJobs] = useState<Job[]>([]);
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const { showToast } = useToast();
   
   const t = TEXTS;
 
@@ -30,21 +35,26 @@ export const Settings: React.FC<Props> = ({ lang }) => {
     setWebhookEvents(storageService.getWebhookEvents());
     setFailedJobs(storageService.getFailedJobs());
     setErrorLogs(storageService.getErrorLogs());
+    setSessions(authService.getSessions());
   };
 
   const handleSaveCountries = () => {
     storageService.saveCountries(countries);
-    alert('Country Settings Saved');
+    showToast('Country Settings Saved', 'success');
   };
 
   const handleRetryJob = (id: string) => {
       queueService.retryFailedJob(id);
       loadData();
-      alert("Job re-queued for processing");
+      showToast("Job re-queued for processing", "info");
   };
 
-  const updateCountry = (id: string, field: keyof Country, value: any) => {
-      setCountries(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  const handleLogoutAll = async () => {
+      if(confirm("Are you sure you want to log out of all other devices?")) {
+          await authService.logoutAllSessions();
+          showToast("Logged out from other sessions", "success");
+          setSessions(prev => prev.filter(s => s.current));
+      }
   };
 
   const addShippingCompany = (countryId: string) => {
@@ -69,11 +79,8 @@ export const Settings: React.FC<Props> = ({ lang }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in">
-        <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-            <SettingsIcon className="text-accent" />
-            {t.settings[lang]}
-        </h1>
+    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-12">
+        <SectionHeader title={t.settings[lang]} />
 
         {/* Tabs */}
         <div className="flex border-b border-slate-700 space-x-6 overflow-x-auto">
@@ -90,6 +97,12 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                 {t.countrySettings[lang]}
             </button>
             <button 
+                onClick={() => setActiveTab('security')}
+                className={`pb-4 px-2 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'security' ? 'text-blue-500 border-b-2 border-blue-500' : 'text-slate-400 hover:text-white'}`}
+            >
+                <Lock size={16} /> Security
+            </button>
+            <button 
                 onClick={() => setActiveTab('health')}
                 className={`pb-4 px-2 font-medium transition-colors whitespace-nowrap flex items-center gap-2 ${activeTab === 'health' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-400 hover:text-white'}`}
             >
@@ -99,7 +112,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
 
         {activeTab === 'general' && (
             <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl animate-fade-in">
-                <h2 className="text-xl font-semibold text-white mb-6">{t.connectTitle[lang]}</h2>
+                <h2 className="text-xl font-bold text-white mb-6">{t.connectTitle[lang]}</h2>
                 <div className="space-y-4">
                     <div className="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-700">
                         <div className="flex items-center gap-3">
@@ -111,7 +124,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                                 <p className="text-xs text-green-400">Connected as "My Shop"</p>
                             </div>
                         </div>
-                        <button className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-white">Disconnect</button>
+                        <button className="text-xs bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg text-white transition-colors">Disconnect</button>
                     </div>
                 </div>
                 <div className="mt-4 p-4 bg-blue-900/10 border border-blue-900/30 rounded-xl text-sm text-blue-300">
@@ -124,7 +137,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
             <div className="space-y-6 animate-fade-in">
                 <div className="flex justify-between items-center">
                     <p className="text-slate-400">Manage supported countries, regions, and shipping providers.</p>
-                    <button onClick={handleSaveCountries} className="flex items-center gap-2 bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium transition-all">
+                    <button onClick={handleSaveCountries} className="flex items-center gap-2 bg-accent hover:bg-accentHover text-white px-4 py-2 rounded-xl font-medium transition-all shadow-lg">
                         <Save size={18} />
                         Save Changes
                     </button>
@@ -148,7 +161,7 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                                     {country.shippingCompanies.map(sc => (
                                         <div key={sc} className="flex items-center justify-between bg-slate-900 p-2 rounded-lg border border-slate-800">
                                             <span className="text-sm text-slate-300">{sc}</span>
-                                            <button onClick={() => removeShippingCompany(country.id, sc)} className="text-red-400 hover:text-red-300">
+                                            <button onClick={() => removeShippingCompany(country.id, sc)} className="text-red-400 hover:text-red-300 transition-colors">
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
@@ -183,6 +196,60 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                     <Plus size={20} />
                     Add New Country (Coming Soon)
                 </button>
+            </div>
+        )}
+
+        {activeTab === 'security' && (
+            <div className="space-y-6 animate-fade-in">
+                 <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl">
+                     <div className="flex justify-between items-start mb-6">
+                         <div>
+                             <h2 className="text-xl font-bold text-white mb-2">Active Sessions</h2>
+                             <p className="text-slate-400 text-sm">Manage devices where you are currently logged in.</p>
+                         </div>
+                         <button 
+                            onClick={handleLogoutAll}
+                            className="text-red-400 hover:text-red-300 text-sm font-medium border border-red-500/20 bg-red-500/5 px-4 py-2 rounded-xl transition-colors hover:bg-red-500/10"
+                         >
+                             Log out all other devices
+                         </button>
+                     </div>
+
+                     <div className="space-y-4">
+                         {sessions.map(session => (
+                             <div key={session.id} className="flex items-center justify-between p-4 bg-slate-900 rounded-xl border border-slate-800">
+                                 <div className="flex items-center gap-4">
+                                     <div className="w-10 h-10 bg-slate-800 rounded-full flex items-center justify-center text-slate-400">
+                                         {session.device.toLowerCase().includes('phone') ? <Smartphone size={20} /> : <Monitor size={20} />}
+                                     </div>
+                                     <div>
+                                         <p className="text-white font-medium flex items-center gap-2">
+                                             {session.device}
+                                             {session.current && <Badge variant="success">Current Device</Badge>}
+                                         </p>
+                                         <p className="text-xs text-slate-500 mt-1">
+                                             {session.location} • {session.ip} • Last active {new Date(session.lastActive).toLocaleTimeString()}
+                                         </p>
+                                     </div>
+                                 </div>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+
+                 <div className="bg-slate-800/50 border border-slate-700 p-8 rounded-2xl">
+                     <h2 className="text-xl font-bold text-white mb-2">Authentication</h2>
+                     <p className="text-slate-400 text-sm mb-6">Update your password or enable 2FA.</p>
+                     
+                     <div className="flex gap-4">
+                         <button className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-medium text-sm transition-colors">
+                             Change Password
+                         </button>
+                         <button className="px-4 py-2 border border-slate-600 text-slate-300 hover:text-white rounded-xl font-medium text-sm transition-colors">
+                             Enable 2-Factor Auth
+                         </button>
+                     </div>
+                 </div>
             </div>
         )}
 
@@ -249,23 +316,23 @@ export const Settings: React.FC<Props> = ({ lang }) => {
                     <h3 className="text-lg font-bold text-white mb-4">Recent System Logs</h3>
                     <div className="h-64 overflow-y-auto space-y-2 pr-2">
                         {errorLogs.length === 0 ? (
-                            <div className="text-slate-500 text-sm text-center py-8">No errors recorded. System healthy.</div>
+                            <EmptyState 
+                                icon={Server} 
+                                title="System Healthy" 
+                                description="No errors recorded in the last 24 hours." 
+                            />
                         ) : (
                             errorLogs.map(log => (
-                                <div key={log.id} className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs">
+                                <div key={log.id} className="p-3 bg-slate-900 rounded-lg border border-slate-800 text-xs hover:border-slate-700 transition-colors">
                                     <div className="flex justify-between items-start mb-1">
-                                        <span className={`font-bold uppercase ${
-                                            log.severity === 'critical' ? 'text-red-500' : 
-                                            log.severity === 'error' ? 'text-orange-400' : 
-                                            log.severity === 'warning' ? 'text-yellow-400' : 'text-blue-400'
-                                        }`}>
-                                            [{log.severity}]
-                                        </span>
-                                        <span className="text-slate-500">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                                        <Badge variant={log.severity === 'critical' ? 'error' : log.severity === 'error' ? 'error' : 'warning'}>
+                                            {log.severity}
+                                        </Badge>
+                                        <span className="text-slate-500 font-mono">{new Date(log.timestamp).toLocaleTimeString()}</span>
                                     </div>
                                     <div className="text-slate-300 font-mono mb-1">{log.message}</div>
                                     {log.metadata && (
-                                        <pre className="text-slate-600 overflow-x-auto">{JSON.stringify(log.metadata)}</pre>
+                                        <pre className="text-slate-600 overflow-x-auto text-[10px]">{JSON.stringify(log.metadata)}</pre>
                                     )}
                                 </div>
                             ))

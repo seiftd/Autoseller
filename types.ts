@@ -16,6 +16,15 @@ export interface User {
   createdAt: number;
 }
 
+export interface Session {
+  id: string;
+  device: string;
+  location: string;
+  ip: string;
+  lastActive: number;
+  current: boolean;
+}
+
 export interface SocialAccount {
   id: string;
   userId: string; // Tenant Isolation

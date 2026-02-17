@@ -50,18 +50,6 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang, onLogout }) =
             </Link>
           );
         })}
-        
-        {/* Dev Link */}
-        <div className="pt-4 mt-4 border-t border-slate-800/50">
-           <Link
-              to="/compliance-kit"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-emerald-500 hover:bg-emerald-500/10 transition-all"
-            >
-              <Shield size={18} />
-              Compliance Kit
-            </Link>
-        </div>
       </div>
 
       <div className="p-4 border-t border-slate-800">

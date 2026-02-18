@@ -32,7 +32,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
           <Bot className="text-white w-5 h-5" />
         </div>
         <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400">
-          AutoSeller
+          ReplyGenie
         </span>
       </div>
 
@@ -96,7 +96,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
             <Bot className="text-white w-5 h-5" />
           </div>
-          <span className="text-lg font-bold text-white">AutoSeller</span>
+          <span className="text-lg font-bold text-white">ReplyGenie</span>
         </div>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-white p-2">
           {mobileMenuOpen ? <X /> : <Menu />}
@@ -121,12 +121,16 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
         </div>
 
         {/* Dashboard Footer for Legal Links */}
-        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-wrap gap-4 justify-center md:justify-end text-xs text-slate-500">
-          <Link to="/privacy-policy" className="hover:text-blue-400 transition-colors">Privacy Policy</Link>
-          <span>•</span>
-          <Link to="/terms-of-service" className="hover:text-blue-400 transition-colors">Terms of Service</Link>
-          <span>•</span>
-          <Link to="/data-deletion" className="hover:text-blue-400 transition-colors">Data Deletion</Link>
+        <div className="mt-12 pt-6 border-t border-slate-800 flex flex-wrap gap-4 justify-center md:justify-end text-[10px] text-slate-500">
+          <Link to="/privacy" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Privacy Policy</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/terms" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Terms of Service</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/data-deletion" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Data Deletion</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/facebook-permissions" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Permissions</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/security" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Security</Link>
         </div>
       </main>
     </div>

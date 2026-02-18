@@ -14,7 +14,7 @@ import { Team } from './pages/Team';
 import { PublishHistory } from './pages/PublishHistory';
 import { Activity } from './pages/Activity';
 import { Billing } from './pages/Billing';
-import { PrivacyPolicy, TermsOfService, DataDeletion } from './pages/LegalPages';
+import { PrivacyPolicy, TermsOfService, DataDeletion, FacebookPermissions, SecurityPage } from './pages/LegalPages';
 import { authService } from './services/authService';
 import { schedulerService } from './services/schedulerService';
 import { queueService } from './services/queueService';
@@ -82,9 +82,11 @@ const AppContent: React.FC = () => {
       />
 
       {/* Public Legal Pages */}
-      <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-      <Route path="/terms-of-service" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/terms" element={<TermsOfService />} />
       <Route path="/data-deletion" element={<DataDeletion />} />
+      <Route path="/facebook-permissions" element={<FacebookPermissions />} />
+      <Route path="/security" element={<SecurityPage />} />
 
       {/* Protected Routes */}
       <Route path="/dashboard" element={

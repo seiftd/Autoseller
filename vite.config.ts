@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => {
     },
     base: "/",
     plugins: [react()],
+    esbuild: {
+      drop: ['console', 'debugger'],
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

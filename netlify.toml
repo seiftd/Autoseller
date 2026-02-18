@@ -4,18 +4,8 @@
 
 [functions]
   directory = "netlify/functions"
-  node_bundler = "esbuild"
 
-# Webhook endpoint — must NOT be redirected to index.html
-[[redirects]]
-  from = "/.netlify/functions/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-  force = true
-
-# SPA routing — all other routes serve index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true

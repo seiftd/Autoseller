@@ -61,6 +61,9 @@ export interface Session {
   current: boolean;
 }
 
+// Account health status for monitoring dashboard
+export type AccountHealthStatus = 'healthy' | 'expiring_soon' | 'action_required' | 'reconnection_required';
+
 export interface SocialAccount {
   id: string;
   userId: string; // Tenant Isolation
@@ -69,16 +72,37 @@ export interface SocialAccount {
   connected: boolean;
   avatarUrl?: string;
   lastSync: number;
-  tokenExpiry?: number; // New: For Health Monitor
-  // Facebook Specifics
-  accessToken?: string; // Encrypted
+  // Token Lifecycle
+  tokenExpiry?: number;
+  accessToken?: string; // AES-GCM encrypted, never plain text
+  // Facebook / Instagram Specifics
   pageId?: string;
   instagramId?: string; // Linked IG Business ID
+  instagramLinked?: boolean; // Whether IG Business is linked to this page
+  // Production Health Fields
+  subscriptionStatus?: boolean; // Whether page is subscribed to webhooks
+  lastWebhookAt?: number; // Timestamp of last received webhook
+  status?: AccountHealthStatus;
+  failedPublishCount?: number;
+  apiErrorRate?: number; // 0-1 ratio of recent API errors
 }
 
 export interface FacebookConfig {
   appId: string;
   apiVersion: string;
+}
+
+// Token refresh audit log
+export interface TokenRefreshLog {
+  id: string;
+  accountId: string;
+  accountName: string;
+  platform: Platform;
+  status: 'success' | 'failed' | 'skipped';
+  errorMessage?: string;
+  previousExpiry?: number;
+  newExpiry?: number;
+  createdAt: number;
 }
 
 export interface Region {
@@ -120,14 +144,14 @@ export interface Product {
   imageUrl?: string;
   images?: string[];
   active: boolean;
-  
+
   // Multi-country fields
   targetCountryId: string;
   currency: Currency;
 
   shipping: ShippingConfig;
   paymentMethods: ('cod' | 'prepaid')[];
-  
+
   // Publishing Targets
   targetAccountIds: string[]; // IDs of connected_accounts
   publishedTo: Platform[]; // Historical kept for display
@@ -136,7 +160,7 @@ export interface Product {
   publishMode: 'instant' | 'scheduled';
   publishStatus: 'draft' | 'scheduled' | 'published';
   scheduledAt?: number;
-  
+
   // Recurring Logic
   isRecurring: boolean;
   recurrenceInterval: number; // in days
@@ -205,7 +229,7 @@ export interface UserStats {
   recentOrders: Order[];
   scheduledPosts: number;
   publishedPosts: number;
-  
+
   // New Analytics
   recurringActive: number;
   totalReposts: number;
@@ -225,7 +249,7 @@ export interface WebhookEvent {
   id: string;
   // Webhooks are global entry points, but processed events should be linked to a tenant if possible
   // via page_id mapping
-  platformEventId: string; 
+  platformEventId: string;
   platform: Platform;
   payload: any;
   receivedAt: number;

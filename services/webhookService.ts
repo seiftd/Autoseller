@@ -1,138 +1,146 @@
+/**
+ * webhookService.ts — Client-side webhook simulation & event management
+ *
+ * In production:
+ * - Real webhooks arrive at /.netlify/functions/fb-webhook (server-side)
+ * - Signature verification happens server-side with FB_APP_SECRET
+ * - This service handles client-side simulation and event display only
+ *
+ * SECURITY: App Secret is NEVER used client-side. Removed from localStorage.
+ */
+
 import { geminiService } from './geminiService';
 import { facebookService } from './facebookService';
 import { storageService } from './storageService';
-import { cryptoService } from './cryptoService';
 import { queueService } from './queueService';
 import { WebhookEvent } from '../types';
 
-// Types for Webhook Payloads
-interface WebhookEntry {
-  id: string; // Page ID
-  time: number;
-  changes?: Array<{
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface WebhookChange {
     field: string;
     value: {
-      item: 'comment' | 'post';
-      comment_id: string;
-      message: string;
-      sender_name: string;
-      post_id: string;
-      parent_id?: string;
+        item: 'comment' | 'post';
+        comment_id: string;
+        message: string;
+        sender_name: string;
+        post_id: string;
+        parent_id?: string;
     };
-  }>;
-  messaging?: Array<{
-    sender: { id: string };
-    recipient: { id: string };
-    message: { text: string };
-  }>;
+}
+
+interface WebhookEntry {
+    id: string;
+    time: number;
+    changes?: WebhookChange[];
+    messaging?: Array<{
+        sender: { id: string };
+        recipient: { id: string };
+        message: { text: string };
+    }>;
 }
 
 interface WebhookPayload {
-  object: 'page' | 'instagram';
-  entry: WebhookEntry[];
+    object: 'page' | 'instagram';
+    entry: WebhookEntry[];
 }
 
+// ─── Service ──────────────────────────────────────────────────────────────────
+
 export const webhookService = {
-  // Production-grade Webhook Handler
-  handleIncomingWebhook: async (rawBody: string, signature: string): Promise<{status: number, message: string}> => {
-      // 1. Security: Verify Signature
-      // In a real app, 'APP_SECRET' would be in env vars
-      const APP_SECRET = localStorage.getItem('fb_app_secret') || 'default_secret'; 
-      const isValid = await cryptoService.verifySignature(rawBody, signature, APP_SECRET);
-      
-      if (!isValid) {
-          storageService.logError({
-              id: crypto.randomUUID(),
-              type: 'security',
-              severity: 'critical',
-              message: 'Invalid Webhook Signature Detected',
-              timestamp: Date.now(),
-              metadata: { signature }
-          });
-          return { status: 403, message: 'Invalid Signature' };
-      }
 
-      const payload: WebhookPayload = JSON.parse(rawBody);
+    /**
+     * Process an incoming webhook payload.
+     * In production this runs server-side in fb-webhook.ts.
+     * This client-side version is used for simulation/testing only.
+     *
+     * NOTE: Signature verification is intentionally NOT done here —
+     * it requires the App Secret which must stay server-side.
+     */
+    handleIncomingWebhook: async (payload: WebhookPayload): Promise<{ status: number; message: string }> => {
+        for (const entry of payload.entry) {
+            if (entry.changes) {
+                for (const change of entry.changes) {
+                    const platformEventId = change.value.comment_id || `${entry.id}_${entry.time}`;
 
-      // 2. Process Entries
-      for (const entry of payload.entry) {
-          // Handle Idempotency & Queueing for Feed Changes
-          if (entry.changes) {
-              for (const change of entry.changes) {
-                  // Generate a deterministic ID for idempotency
-                  // For comments: comment_id is unique
-                  const platformEventId = change.value.comment_id || `${entry.id}_${entry.time}`;
-                  
-                  // Check if exists
-                  const existing = storageService.findWebhookEventByPlatformId(platformEventId);
-                  if (existing) {
-                      console.log(`[Webhook] Duplicate event ${platformEventId} ignored.`);
-                      continue;
-                  }
+                    // Idempotency check
+                    const existing = storageService.findWebhookEventByPlatformId(platformEventId);
+                    if (existing) {
+                        console.log(`[Webhook] Duplicate event ${platformEventId} ignored.`);
+                        continue;
+                    }
 
-                  // Create Event Record
-                  const event: WebhookEvent = {
-                      id: crypto.randomUUID(),
-                      platformEventId,
-                      platform: payload.object === 'instagram' ? 'Instagram' : 'Facebook',
-                      payload: { changes: [change] }, // Isolate the specific change
-                      receivedAt: Date.now(),
-                      status: 'pending',
-                      retryCount: 0
-                  };
-                  
-                  storageService.saveWebhookEvent(event);
+                    const event: WebhookEvent = {
+                        id: crypto.randomUUID(),
+                        platformEventId,
+                        platform: payload.object === 'instagram' ? 'Instagram' : 'Facebook',
+                        payload: { changes: [change] },
+                        receivedAt: Date.now(),
+                        status: 'pending',
+                        retryCount: 0,
+                    };
 
-                  // Push to Queue (Async Processing)
-                  queueService.addJob('process_webhook', event);
-              }
-          }
-      }
+                    storageService.saveWebhookEvent(event);
+                    queueService.addJob('process_webhook', event);
+                }
+            }
+        }
 
-      // 3. Return 200 Immediately
-      return { status: 200, message: 'Event Received' };
-  },
+        return { status: 200, message: 'Event Received' };
+    },
 
-  // Simulate a test event (Updated to use new pipeline)
-  simulateTestComment: async (pageId: string) => {
-      const payload = {
-          object: 'page',
-          entry: [{
-              id: pageId,
-              time: Date.now(),
-              changes: [{
-                  field: 'feed',
-                  value: {
-                      item: 'comment',
-                      comment_id: `TEST_COMMENT_${Date.now()}`, // Unique ID for testing
-                      message: 'How much is shipping to Algiers?',
-                      sender_name: 'Test User',
-                      post_id: 'POST_ID'
-                  }
-              }]
-          }]
-      };
+    /**
+     * Simulate a test comment webhook event for development/testing.
+     * Uses a locally-computed HMAC for simulation only (no App Secret exposed).
+     */
+    simulateTestComment: async (pageId: string): Promise<void> => {
+        const payload: WebhookPayload = {
+            object: 'page',
+            entry: [{
+                id: pageId,
+                time: Date.now(),
+                changes: [{
+                    field: 'feed',
+                    value: {
+                        item: 'comment',
+                        comment_id: `TEST_COMMENT_${Date.now()}`,
+                        message: 'How much is shipping to Algiers?',
+                        sender_name: 'Test User',
+                        post_id: 'POST_ID',
+                    },
+                }],
+            }],
+        };
 
-      const rawBody = JSON.stringify(payload);
-      // For simulation, we create a valid signature using the known mock secret
-      const secret = localStorage.getItem('fb_app_secret') || 'default_secret';
-      
-      // We need to compute signature manually here to pass verification
-      const enc = new TextEncoder();
-      const key = await window.crypto.subtle.importKey(
-          "raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
-      );
-      const sigBuf = await window.crypto.subtle.sign("HMAC", key, enc.encode(rawBody));
-      const sigHex = Array.from(new Uint8Array(sigBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      console.log("--- SIMULATING INCOMING WEBHOOK ---");
-      const result = await webhookService.handleIncomingWebhook(rawBody, `sha256=${sigHex}`);
-      console.log("Webhook Result:", result);
-      
-      if (result.status === 200) {
-          alert("Webhook Event Queued! Check System Health tab in Settings.");
-      } else {
-          alert(`Webhook Failed: ${result.message}`);
-      }
-  }
+        console.log('--- SIMULATING INCOMING WEBHOOK (client-side, no signature) ---');
+        const result = await webhookService.handleIncomingWebhook(payload);
+        console.log('Webhook Result:', result);
+
+        if (result.status === 200) {
+            alert('Webhook Event Queued! Check System Health tab in Settings.');
+        } else {
+            alert(`Webhook Failed: ${result.message}`);
+        }
+    },
+
+    /**
+     * Get the webhook configuration info for display in the UI.
+     * Users need this to configure their Meta App webhook settings.
+     */
+    getWebhookConfig: () => ({
+        callbackUrl: facebookService.getWebhookUrl(),
+        verifyToken: facebookService.getWebhookVerifyToken(),
+        subscribedFields: ['feed', 'messages', 'mention'],
+    }),
+
+    /**
+     * Update the last webhook timestamp for an account (called when webhook received).
+     */
+    updateAccountWebhookTimestamp: (pageId: string): void => {
+        const accounts = storageService.getAccounts();
+        const updated = accounts.map(a =>
+            a.pageId === pageId ? { ...a, lastWebhookAt: Date.now() } : a
+        );
+        storageService.saveAccounts(updated);
+    },
 };

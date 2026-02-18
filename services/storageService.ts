@@ -1,4 +1,4 @@
-import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog, WorkspaceMember, NotificationPreferences, AddOn, UserAddOn } from '../types';
+import { Product, Order, SocialAccount, UserStats, Conversation, Message, DeliverySettings, Country, PublishLog, WebhookEvent, Job, ErrorLog, AuditLog, SpamProtectionLog, WorkspaceMember, NotificationPreferences, AddOn, UserAddOn, TokenRefreshLog, AccountHealthStatus } from '../types';
 import { DEFAULT_COUNTRIES } from '../constants';
 import { authService } from './authService';
 
@@ -18,6 +18,7 @@ const SPAM_LOGS_KEY = 'autoseller_spam_logs';
 const WORKSPACE_MEMBERS_KEY = 'autoseller_workspace_members';
 const NOTIFICATION_PREFS_KEY = 'autoseller_notification_prefs';
 const USER_ADDONS_KEY = 'autoseller_user_addons';
+const TOKEN_REFRESH_LOGS_KEY = 'autoseller_token_refresh_logs';
 
 // Helper for Multi-Tenancy
 // In a real DB, this is enforced by WHERE user_id = ?
@@ -33,29 +34,29 @@ const MOCK_ACCOUNTS: SocialAccount[] = [
 ];
 
 const MOCK_PRODUCTS: Product[] = [
-  { 
+  {
     id: '1',
-    userId: MOCK_USER_ID, 
-    name: 'Smart Watch Ultra', 
+    userId: MOCK_USER_ID,
+    name: 'Smart Watch Ultra',
     description: 'The ultimate smart watch with 3-day battery life and AMOLED display.',
-    price: 4500, 
-    stock: 50, 
+    price: 4500,
+    stock: 50,
     category: 'Electronics',
     hashtags: ['#smartwatch', '#tech', '#dzshop'],
     imageUrl: 'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
     images: [
-        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=600&q=80',
-        'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?auto=format&fit=crop&w=600&q=80'
+      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=600&q=80',
+      'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?auto=format&fit=crop&w=600&q=80'
     ],
     active: true,
     targetCountryId: 'dz',
     currency: 'DZD',
-    shipping: { 
-        type: 'paid', 
-        defaultCost: 600, 
-        locationCosts: { 'Algiers': 400 }, 
-        companies: ['Yalidine'] 
+    shipping: {
+      type: 'paid',
+      defaultCost: 600,
+      locationCosts: { 'Algiers': 400 },
+      companies: ['Yalidine']
     },
     paymentMethods: ['cod'],
     targetAccountIds: ['1'],
@@ -72,15 +73,15 @@ const MOCK_PRODUCTS: Product[] = [
 export const storageService = {
   // COUNTRIES (Global Data - No Tenant Isolation needed)
   getCountries: (): Country[] => {
-      const data = localStorage.getItem(COUNTRIES_KEY);
-      if (!data) {
-          localStorage.setItem(COUNTRIES_KEY, JSON.stringify(DEFAULT_COUNTRIES));
-          return DEFAULT_COUNTRIES;
-      }
-      return JSON.parse(data);
+    const data = localStorage.getItem(COUNTRIES_KEY);
+    if (!data) {
+      localStorage.setItem(COUNTRIES_KEY, JSON.stringify(DEFAULT_COUNTRIES));
+      return DEFAULT_COUNTRIES;
+    }
+    return JSON.parse(data);
   },
   saveCountries: (countries: Country[]) => {
-      localStorage.setItem(COUNTRIES_KEY, JSON.stringify(countries));
+    localStorage.setItem(COUNTRIES_KEY, JSON.stringify(countries));
   },
 
   // ACCOUNTS (Tenant Isolated)
@@ -88,27 +89,27 @@ export const storageService = {
     const uid = getTenantId();
     const data = localStorage.getItem(ACCOUNTS_KEY);
     let all: SocialAccount[] = data ? JSON.parse(data) : MOCK_ACCOUNTS;
-    
+
     // Filter by Tenant
     return all.filter(a => a.userId === uid);
   },
-  
+
   saveAccounts: (accounts: SocialAccount[]) => {
-      const uid = getTenantId();
-      const allData = localStorage.getItem(ACCOUNTS_KEY);
-      let all: SocialAccount[] = allData ? JSON.parse(allData) : MOCK_ACCOUNTS;
-      
-      const otherUsersAccounts = all.filter(a => a.userId !== uid);
-      const accountsWithId = accounts.map(a => ({ ...a, userId: uid }));
-      
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([...otherUsersAccounts, ...accountsWithId]));
+    const uid = getTenantId();
+    const allData = localStorage.getItem(ACCOUNTS_KEY);
+    let all: SocialAccount[] = allData ? JSON.parse(allData) : MOCK_ACCOUNTS;
+
+    const otherUsersAccounts = all.filter(a => a.userId !== uid);
+    const accountsWithId = accounts.map(a => ({ ...a, userId: uid }));
+
+    localStorage.setItem(ACCOUNTS_KEY, JSON.stringify([...otherUsersAccounts, ...accountsWithId]));
   },
 
   toggleAccount: (id: string) => {
     const uid = getTenantId();
-    const all = storageService.getAllAccountsRaw(); 
-    const idx = all.findIndex(a => a.id === id && a.userId === uid); 
-    
+    const all = storageService.getAllAccountsRaw();
+    const idx = all.findIndex(a => a.id === id && a.userId === uid);
+
     if (idx >= 0) {
       all[idx].connected = !all[idx].connected;
       all[idx].lastSync = Date.now();
@@ -127,27 +128,27 @@ export const storageService = {
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
     const p = { ...product, userId: uid }; // Enforce ownership
-    
-    const index = all.findIndex(item => item.id === p.id); 
+
+    const index = all.findIndex(item => item.id === p.id);
     if (index >= 0) {
-        if (all[index].userId !== uid) throw new Error("Unauthorized access to product");
-        all[index] = p;
+      if (all[index].userId !== uid) throw new Error("Unauthorized access to product");
+      all[index] = p;
     } else {
-        all.unshift(p);
+      all.unshift(p);
     }
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(all));
   },
   saveProducts: (userProducts: Product[]) => {
-      const uid = getTenantId();
-      const all = storageService.getAllProductsRaw();
-      const others = all.filter(p => p.userId !== uid);
-      const secureUserProducts = userProducts.map(p => ({...p, userId: uid}));
-      localStorage.setItem(PRODUCTS_KEY, JSON.stringify([...others, ...secureUserProducts]));
+    const uid = getTenantId();
+    const all = storageService.getAllProductsRaw();
+    const others = all.filter(p => p.userId !== uid);
+    const secureUserProducts = userProducts.map(p => ({ ...p, userId: uid }));
+    localStorage.setItem(PRODUCTS_KEY, JSON.stringify([...others, ...secureUserProducts]));
   },
   deleteProduct: (id: string) => {
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
-    const filtered = all.filter(p => !(p.id === id && p.userId === uid)); 
+    const filtered = all.filter(p => !(p.id === id && p.userId === uid));
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(filtered));
   },
 
@@ -166,123 +167,123 @@ export const storageService = {
 
   // PUBLISH LOGS (Tenant Isolated)
   getPublishLogs: (): PublishLog[] => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(PUBLISH_LOGS_KEY);
-      const all: PublishLog[] = data ? JSON.parse(data) : [];
-      return all.filter(l => l.userId === uid);
+    const uid = getTenantId();
+    const data = localStorage.getItem(PUBLISH_LOGS_KEY);
+    const all: PublishLog[] = data ? JSON.parse(data) : [];
+    return all.filter(l => l.userId === uid);
   },
   addPublishLog: (log: PublishLog) => {
-      const all = storageService.getAllPublishLogsRaw();
-      all.unshift(log);
-      if (all.length > 500) all.pop(); 
-      localStorage.setItem(PUBLISH_LOGS_KEY, JSON.stringify(all));
+    const all = storageService.getAllPublishLogsRaw();
+    all.unshift(log);
+    if (all.length > 500) all.pop();
+    localStorage.setItem(PUBLISH_LOGS_KEY, JSON.stringify(all));
   },
 
   // AUDIT / ACTIVITY LOGS (Tenant Isolated)
   getAuditLogs: (): AuditLog[] => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(AUDIT_LOGS_KEY);
-      const all: AuditLog[] = data ? JSON.parse(data) : [];
-      return all.filter(l => l.userId === uid);
+    const uid = getTenantId();
+    const data = localStorage.getItem(AUDIT_LOGS_KEY);
+    const all: AuditLog[] = data ? JSON.parse(data) : [];
+    return all.filter(l => l.userId === uid);
   },
   addAuditLog: (log: AuditLog) => {
-      const data = localStorage.getItem(AUDIT_LOGS_KEY);
-      const all: AuditLog[] = data ? JSON.parse(data) : [];
-      all.unshift(log);
-      if (all.length > 200) all.pop();
-      localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(all));
+    const data = localStorage.getItem(AUDIT_LOGS_KEY);
+    const all: AuditLog[] = data ? JSON.parse(data) : [];
+    all.unshift(log);
+    if (all.length > 200) all.pop();
+    localStorage.setItem(AUDIT_LOGS_KEY, JSON.stringify(all));
   },
 
   // SPAM LOGS
   logSpamProtection: (userId: string, reason: any, details: any) => {
-      const log: SpamProtectionLog = {
-          id: crypto.randomUUID(),
-          userId,
-          reason,
-          details,
-          blockedAt: Date.now()
-      };
-      const data = localStorage.getItem(SPAM_LOGS_KEY);
-      const all: SpamProtectionLog[] = data ? JSON.parse(data) : [];
-      all.unshift(log);
-      localStorage.setItem(SPAM_LOGS_KEY, JSON.stringify(all));
+    const log: SpamProtectionLog = {
+      id: crypto.randomUUID(),
+      userId,
+      reason,
+      details,
+      blockedAt: Date.now()
+    };
+    const data = localStorage.getItem(SPAM_LOGS_KEY);
+    const all: SpamProtectionLog[] = data ? JSON.parse(data) : [];
+    all.unshift(log);
+    localStorage.setItem(SPAM_LOGS_KEY, JSON.stringify(all));
   },
 
   // WORKSPACE MEMBERS
   getWorkspaceMembers: (): WorkspaceMember[] => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
-      const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
-      return all.filter(m => m.workspaceId === uid);
+    const uid = getTenantId();
+    const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+    const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+    return all.filter(m => m.workspaceId === uid);
   },
   addWorkspaceMember: (member: WorkspaceMember) => {
-      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
-      const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
-      all.push(member);
-      localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
+    const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+    const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+    all.push(member);
+    localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
   },
   removeWorkspaceMember: (memberId: string) => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
-      let all: WorkspaceMember[] = data ? JSON.parse(data) : [];
-      all = all.filter(m => !(m.id === memberId && m.workspaceId === uid));
-      localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
+    const uid = getTenantId();
+    const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
+    let all: WorkspaceMember[] = data ? JSON.parse(data) : [];
+    all = all.filter(m => !(m.id === memberId && m.workspaceId === uid));
+    localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
   },
 
   // ADD-ONS
   getUserAddons: (): UserAddOn[] => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(USER_ADDONS_KEY);
-      const all: UserAddOn[] = data ? JSON.parse(data) : [];
-      return all.filter(addon => addon.userId === uid && addon.active);
+    const uid = getTenantId();
+    const data = localStorage.getItem(USER_ADDONS_KEY);
+    const all: UserAddOn[] = data ? JSON.parse(data) : [];
+    return all.filter(addon => addon.userId === uid && addon.active);
   },
   toggleAddon: (addonId: string, active: boolean) => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(USER_ADDONS_KEY);
-      let all: UserAddOn[] = data ? JSON.parse(data) : [];
-      
-      // If feature type, we just check existence. If quantity type, we add/remove instance.
-      // For this simplified marketplace, we assume 1 instance of each 'feature' type and allow multiples for 'quantity'.
-      // However, to keep it simple for the UI: One entry per Addon ID.
-      
-      const existingIdx = all.findIndex(a => a.userId === uid && a.addonId === addonId);
-      
-      if (active) {
-          if (existingIdx === -1) {
-              all.push({
-                  id: crypto.randomUUID(),
-                  userId: uid,
-                  addonId,
-                  active: true,
-                  purchasedAt: Date.now()
-              });
-          } else {
-              all[existingIdx].active = true;
-          }
+    const uid = getTenantId();
+    const data = localStorage.getItem(USER_ADDONS_KEY);
+    let all: UserAddOn[] = data ? JSON.parse(data) : [];
+
+    // If feature type, we just check existence. If quantity type, we add/remove instance.
+    // For this simplified marketplace, we assume 1 instance of each 'feature' type and allow multiples for 'quantity'.
+    // However, to keep it simple for the UI: One entry per Addon ID.
+
+    const existingIdx = all.findIndex(a => a.userId === uid && a.addonId === addonId);
+
+    if (active) {
+      if (existingIdx === -1) {
+        all.push({
+          id: crypto.randomUUID(),
+          userId: uid,
+          addonId,
+          active: true,
+          purchasedAt: Date.now()
+        });
       } else {
-          if (existingIdx !== -1) {
-              all[existingIdx].active = false;
-          }
+        all[existingIdx].active = true;
       }
-      localStorage.setItem(USER_ADDONS_KEY, JSON.stringify(all));
+    } else {
+      if (existingIdx !== -1) {
+        all[existingIdx].active = false;
+      }
+    }
+    localStorage.setItem(USER_ADDONS_KEY, JSON.stringify(all));
   },
 
   // NOTIFICATION PREFERENCES
   getNotificationPreferences: (): NotificationPreferences => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
-      const all: NotificationPreferences[] = data ? JSON.parse(data) : [];
-      return all.find(p => p.userId === uid) || { 
-          userId: uid, notifyOnPublishFail: true, notifyOnTokenExpiry: true, notifyOnWeeklyReport: false 
-      };
+    const uid = getTenantId();
+    const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
+    const all: NotificationPreferences[] = data ? JSON.parse(data) : [];
+    return all.find(p => p.userId === uid) || {
+      userId: uid, notifyOnPublishFail: true, notifyOnTokenExpiry: true, notifyOnWeeklyReport: false
+    };
   },
   saveNotificationPreferences: (prefs: NotificationPreferences) => {
-      const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
-      let all: NotificationPreferences[] = data ? JSON.parse(data) : [];
-      const idx = all.findIndex(p => p.userId === prefs.userId);
-      if (idx >= 0) all[idx] = prefs;
-      else all.push(prefs);
-      localStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(all));
+    const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
+    let all: NotificationPreferences[] = data ? JSON.parse(data) : [];
+    const idx = all.findIndex(p => p.userId === prefs.userId);
+    if (idx >= 0) all[idx] = prefs;
+    else all.push(prefs);
+    localStorage.setItem(NOTIFICATION_PREFS_KEY, JSON.stringify(all));
   },
 
   // SYSTEM LEVEL (Events, Jobs, Errors)
@@ -328,18 +329,48 @@ export const storageService = {
     if (list.length > 100) list.pop();
     localStorage.setItem(ERROR_LOGS_KEY, JSON.stringify(list));
   },
+  // TOKEN REFRESH LOGS
+  getTokenRefreshLogs: (): TokenRefreshLog[] => {
+    const data = localStorage.getItem(TOKEN_REFRESH_LOGS_KEY);
+    return data ? JSON.parse(data) : [];
+  },
+  saveTokenRefreshLog: (log: TokenRefreshLog) => {
+    const list = storageService.getTokenRefreshLogs();
+    list.unshift(log);
+    if (list.length > 200) list.length = 200;
+    localStorage.setItem(TOKEN_REFRESH_LOGS_KEY, JSON.stringify(list));
+  },
+
+  // ACCOUNT HEALTH
+  updateAccountStatus: (id: string, status: AccountHealthStatus) => {
+    const all = storageService.getAllAccountsRaw();
+    const idx = all.findIndex(a => a.id === id);
+    if (idx >= 0) {
+      all[idx].status = status;
+      localStorage.setItem('autoseller_accounts', JSON.stringify(all));
+    }
+  },
+  getAccountHealthSummary: (): { healthy: number; expiring: number; actionRequired: number } => {
+    const accounts = storageService.getAccounts();
+    return {
+      healthy: accounts.filter(a => !a.status || a.status === 'healthy').length,
+      expiring: accounts.filter(a => a.status === 'expiring_soon').length,
+      actionRequired: accounts.filter(a => a.status === 'action_required' || a.status === 'reconnection_required').length,
+    };
+  },
+
   getFailedJobs: (): Job[] => {
-      const data = localStorage.getItem(FAILED_JOBS_KEY);
-      return data ? JSON.parse(data) : [];
+    const data = localStorage.getItem(FAILED_JOBS_KEY);
+    return data ? JSON.parse(data) : [];
   },
   saveFailedJob: (job: Job) => {
-      const list = storageService.getFailedJobs();
-      list.unshift(job);
-      localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
+    const list = storageService.getFailedJobs();
+    list.unshift(job);
+    localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
   },
   removeFailedJob: (id: string) => {
-      const list = storageService.getFailedJobs().filter(j => j.id !== id);
-      localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
+    const list = storageService.getFailedJobs().filter(j => j.id !== id);
+    localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
   },
 
   // STATS (Tenant Isolated)
@@ -348,7 +379,7 @@ export const storageService = {
     const products = storageService.getProducts();
     const accounts = storageService.getAccounts();
     const logs = storageService.getPublishLogs();
-    
+
     return {
       totalOrders: orders.length,
       revenue: orders.reduce((sum, o) => sum + o.total, 0),
@@ -365,44 +396,44 @@ export const storageService = {
 
   // RAW HELPERS (Internal use to get full lists for updates)
   getAllAccountsRaw: (): SocialAccount[] => {
-      const data = localStorage.getItem(ACCOUNTS_KEY);
-      return data ? JSON.parse(data) : MOCK_ACCOUNTS;
+    const data = localStorage.getItem(ACCOUNTS_KEY);
+    return data ? JSON.parse(data) : MOCK_ACCOUNTS;
   },
   getAllProductsRaw: (): Product[] => {
-      const data = localStorage.getItem(PRODUCTS_KEY);
-      return data ? JSON.parse(data) : MOCK_PRODUCTS;
+    const data = localStorage.getItem(PRODUCTS_KEY);
+    return data ? JSON.parse(data) : MOCK_PRODUCTS;
   },
   getAllOrdersRaw: (): Order[] => {
-      const data = localStorage.getItem(ORDERS_KEY);
-      return data ? JSON.parse(data) : [];
+    const data = localStorage.getItem(ORDERS_KEY);
+    return data ? JSON.parse(data) : [];
   },
   getAllPublishLogsRaw: (): PublishLog[] => {
-      const data = localStorage.getItem(PUBLISH_LOGS_KEY);
-      return data ? JSON.parse(data) : [];
+    const data = localStorage.getItem(PUBLISH_LOGS_KEY);
+    return data ? JSON.parse(data) : [];
   },
 
   // CONVERSATIONS
   getConversations: (): Conversation[] => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(CONVERSATIONS_KEY);
-      if (!data) return [];
-      const all: Conversation[] = JSON.parse(data);
-      return all.filter(c => c.userId === uid);
+    const uid = getTenantId();
+    const data = localStorage.getItem(CONVERSATIONS_KEY);
+    if (!data) return [];
+    const all: Conversation[] = JSON.parse(data);
+    return all.filter(c => c.userId === uid);
   },
   saveConversation: (conv: Conversation) => {
-      const uid = getTenantId();
-      const data = localStorage.getItem(CONVERSATIONS_KEY);
-      const all: Conversation[] = data ? JSON.parse(data) : [];
-      const index = all.findIndex(c => c.id === conv.id);
-      
-      const secureConv = { ...conv, userId: uid };
-      
-      if (index >= 0) {
-          if (all[index].userId !== uid) throw new Error("Access Denied");
-          all[index] = secureConv;
-      } else {
-          all.unshift(secureConv);
-      }
-      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(all));
+    const uid = getTenantId();
+    const data = localStorage.getItem(CONVERSATIONS_KEY);
+    const all: Conversation[] = data ? JSON.parse(data) : [];
+    const index = all.findIndex(c => c.id === conv.id);
+
+    const secureConv = { ...conv, userId: uid };
+
+    if (index >= 0) {
+      if (all[index].userId !== uid) throw new Error("Access Denied");
+      all[index] = secureConv;
+    } else {
+      all.unshift(secureConv);
+    }
+    localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(all));
   }
 };

@@ -53,9 +53,9 @@ const AppContent: React.FC = () => {
       document.documentElement.dir = 'ltr';
     }
 
-    // Start Background Services
-    schedulerService.start();
-    queueService.start();
+    // Temporarily disabled for React 19 / MessagePort crash debugging
+    // schedulerService.start();
+    // queueService.start();
   }, [lang]);
 
   // Sync Clerk User to App Service

@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+    --font-inter: "Inter", sans-serif;
+    --font-cairo: "Cairo", sans-serif;
+}
+
+@layer base {
+    body {
+        @apply bg-[#020617] text-[#f8fafc] font-inter;
+    }
+}

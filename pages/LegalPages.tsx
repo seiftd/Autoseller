@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, FileText, Trash2, Mail, Lock, CheckCircle2, AlertTriangle, Facebook, Instagram, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Shield, FileText, Trash2, Mail, Lock, CheckCircle2, AlertTriangle, Facebook, Instagram, ShieldCheck } from 'lucide-react';
 
 // Use standard function declarations for better React 19 compatibility
 export function LegalLayout({ title, lastUpdated, children }: { title: string; lastUpdated: string; children: React.ReactNode }) {

@@ -92,31 +92,32 @@ async function refreshLongLivedToken(encryptedToken: string): Promise<{
 
 export const handler: Handler = async (event: HandlerEvent, _context: HandlerContext) => {
     const headers = { 'Content-Type': 'application/json' };
+    const db = (await import('./utils/db')).db;
 
-    // This endpoint is called by the frontend tokenService when it detects
-    // an account with token expiry < 7 days.
-    // It can also be triggered as a scheduled function.
+    if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
+    if (event.httpMethod !== 'POST') return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
 
-    if (event.httpMethod === 'OPTIONS') {
-        return { statusCode: 204, headers, body: '' };
-    }
-
-    if (event.httpMethod !== 'POST') {
-        return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
-    }
-
-    let body: { encryptedToken: string; accountId: string; tokenExpiry: number };
+    let body: { accountId: string };
     try {
         body = JSON.parse(event.body || '{}');
     } catch {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON' }) };
     }
 
-    const { encryptedToken, accountId, tokenExpiry } = body;
+    const { accountId } = body;
 
-    if (!encryptedToken || !accountId) {
-        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing required fields' }) };
+    if (!accountId) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing accountId' }) };
     }
+
+    // Requirement 8: All tokens must be decrypted only inside serverless function
+    const account = await db.getAccount(accountId);
+    if (!account || !account.encryptedToken) {
+        return { statusCode: 404, headers, body: JSON.stringify({ error: 'Account or token not found in DB' }) };
+    }
+
+    const encryptedToken = account.encryptedToken;
+    const tokenExpiry = account.tokenExpiry || 0;
 
     // Only refresh if expiring within 7 days
     const timeUntilExpiry = tokenExpiry - Date.now();
@@ -132,14 +133,18 @@ export const handler: Handler = async (event: HandlerEvent, _context: HandlerCon
         };
     }
 
-    console.log(`[fb-token-refresh] Refreshing token for account ${accountId}, expires in ${Math.round(timeUntilExpiry / 86400000)} days`);
+    console.log(`[fb-token-refresh] Refreshing token for account ${accountId}`);
 
     const result = await refreshLongLivedToken(encryptedToken);
 
     if (!result) {
         console.error(`[fb-token-refresh] Failed to refresh token for account ${accountId}`);
+
+        // Requirement 7: Show reconnect required
+        await db.markAccountIncomplete(accountId, 'Token refresh failed. Reconnect required.');
+
         return {
-            statusCode: 200, // Return 200 so frontend can handle gracefully
+            statusCode: 200,
             headers,
             body: JSON.stringify({
                 status: 'failed',
@@ -149,6 +154,12 @@ export const handler: Handler = async (event: HandlerEvent, _context: HandlerCon
         };
     }
 
+    // Requirement 8: Store new encrypted token in DB
+    account.encryptedToken = result.newEncryptedToken;
+    account.tokenExpiry = result.newExpiry;
+    account.status = 'healthy';
+    await db.upsertAccount(account);
+
     console.log(`[fb-token-refresh] Successfully refreshed token for account ${accountId}`);
 
     return {
@@ -157,7 +168,6 @@ export const handler: Handler = async (event: HandlerEvent, _context: HandlerCon
         body: JSON.stringify({
             status: 'success',
             accountId,
-            newEncryptedToken: result.newEncryptedToken,
             newExpiry: result.newExpiry,
         }),
     };

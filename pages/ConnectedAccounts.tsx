@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { storageService } from '../services/storageService';
 import { webhookService } from '../services/webhookService';
 import { facebookService } from '../services/facebookService';
-import { processOAuthCallback, getAccountHealthStatus, getHealthLabel, getTokenExpiryText, runTokenHealthCheck } from '../services/tokenService';
+import { getAccountHealthStatus, getHealthLabel, getTokenExpiryText, runTokenHealthCheck } from '../services/tokenService';
 import { SocialAccount, Language } from '../types';
 import { TEXTS } from '../constants';
 import {
@@ -36,11 +36,24 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
         setAccounts(storageService.getAccounts());
     }, []);
 
+
+    const syncAccounts = useCallback(async () => {
+        try {
+            const serverAccounts = await facebookService.fetchConnectedAccounts();
+            if (serverAccounts && serverAccounts.length > 0) {
+                storageService.saveAccounts(serverAccounts);
+                loadData();
+            }
+        } catch (err) {
+            console.error('Failed to sync accounts:', err);
+        }
+    }, [loadData]);
+
     // Handle OAuth callback redirect
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const oauthSuccess = params.get('oauth_success');
-        const payload = params.get('payload');
+        const count = params.get('count');
         const error = params.get('error');
 
         if (error) {
@@ -54,28 +67,12 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
             return;
         }
 
-        if (oauthSuccess && payload) {
-            const newAccounts = processOAuthCallback(payload);
-            if (newAccounts.length > 0) {
-                const existing = storageService.getAccounts().filter(
-                    a => !newAccounts.find(n => n.pageId === a.pageId)
-                );
-                storageService.saveAccounts([...existing, ...newAccounts]);
-                loadData();
-                showToast(`Successfully connected ${newAccounts.length} account(s)!`, 'success');
-
-                // Warn about pages without Instagram
-                const noIg = newAccounts.filter(a => a.platform === 'Facebook' && !a.instagramLinked);
-                if (noIg.length > 0) {
-                    showToast(
-                        `${noIg.length} page(s) have no linked Instagram Business account.`,
-                        'warning'
-                    );
-                }
-            }
+        if (oauthSuccess) {
+            showToast(`Successfully connected ${count || ''} account(s)! Tokens are stored securely in the database.`, 'success');
+            syncAccounts();
             navigate('/connected-accounts', { replace: true });
         }
-    }, [location.search]);
+    }, [location.search, syncAccounts]);
 
     useEffect(() => {
         loadData();
@@ -111,11 +108,6 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
         storageService.saveAccounts(updated);
         setAccounts(updated);
         showToast('Account disconnected.', 'info');
-    };
-
-    const handleSimulateWebhook = (pageId: string) => {
-        webhookService.simulateTestComment(pageId);
-        showToast('Test webhook triggered. Check Dashboard health.', 'info');
     };
 
     const handleCopy = async (text: string, type: 'webhook' | 'token') => {
@@ -300,12 +292,9 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                                             <RefreshCw size={14} /> Reconnect Account
                                         </button>
                                     ) : (
-                                        <button
-                                            onClick={() => handleSimulateWebhook(account.pageId || '')}
-                                            className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-xs font-bold flex items-center justify-center gap-2 transition-colors"
-                                        >
-                                            <Zap size={14} /> Test Auto-Reply
-                                        </button>
+                                        <div className="w-full py-2.5 rounded-xl bg-slate-900/50 text-slate-500 text-[10px] text-center italic">
+                                            Auto-replies Active
+                                        </div>
                                     )}
 
                                     <button

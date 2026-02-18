@@ -21,13 +21,19 @@ const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
 
 // ─── Health Status ─────────────────────────────────────────────────────────────
 
+// ─── Health Status ─────────────────────────────────────────────────────────────
+
 export function getAccountHealthStatus(account: SocialAccount): AccountHealthStatus {
-    if (!account.connected || !account.accessToken) {
+    if (!account.connected) {
         return 'action_required';
     }
 
     if (account.status === 'reconnection_required') {
         return 'reconnection_required';
+    }
+
+    if (account.status === 'action_required') {
+        return 'action_required';
     }
 
     if (!account.tokenExpiry) {
@@ -37,7 +43,7 @@ export function getAccountHealthStatus(account: SocialAccount): AccountHealthSta
     const timeUntilExpiry = account.tokenExpiry - Date.now();
 
     if (timeUntilExpiry <= 0) {
-        return 'action_required'; // Expired
+        return 'reconnection_required'; // Expired
     }
 
     if (timeUntilExpiry <= THREE_DAYS_MS) {
@@ -87,19 +93,16 @@ export function getTokenExpiryText(tokenExpiry?: number): string {
     return `${hours}h remaining`;
 }
 
-// ─── Token Refresh ─────────────────────────────────────────────────────────────
+// ─── Token Refresh (Requirement 7) ─────────────────────────────────────────────
 
 async function refreshAccountToken(account: SocialAccount): Promise<SocialAccount> {
-    if (!account.accessToken || !account.tokenExpiry) return account;
-
+    // REQUIREMENT 7: Trigger refresh check on the server
     try {
         const res = await fetch('/.netlify/functions/fb-token-refresh', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                encryptedToken: account.accessToken,
                 accountId: account.id,
-                tokenExpiry: account.tokenExpiry,
             }),
         });
 
@@ -109,7 +112,6 @@ async function refreshAccountToken(account: SocialAccount): Promise<SocialAccoun
             console.log(`[tokenService] Token refreshed for account ${account.id}`);
             return {
                 ...account,
-                accessToken: data.newEncryptedToken,
                 tokenExpiry: data.newExpiry,
                 status: 'healthy',
                 lastSync: Date.now(),
@@ -117,6 +119,7 @@ async function refreshAccountToken(account: SocialAccount): Promise<SocialAccoun
         }
 
         if (data.status === 'failed') {
+            // Requirement 7: Send email alert would happen on server
             console.warn(`[tokenService] Token refresh failed for account ${account.id}. Marking as reconnection_required.`);
             return {
                 ...account,
@@ -125,7 +128,6 @@ async function refreshAccountToken(account: SocialAccount): Promise<SocialAccoun
             };
         }
 
-        // 'skipped' — token not expiring soon
         return account;
 
     } catch (err) {
@@ -154,18 +156,17 @@ export async function runTokenHealthCheck(): Promise<void> {
         let anyChanged = false;
 
         for (const account of accounts) {
-            // Calculate health status
             const healthStatus = getAccountHealthStatus(account);
-            let updatedAccount = { ...account, status: healthStatus };
+            let updatedAccount: SocialAccount = { ...account, status: healthStatus };
 
             // Auto-refresh if expiring within 7 days
             if (
                 (healthStatus === 'expiring_soon' || healthStatus === 'action_required') &&
-                account.accessToken &&
                 account.tokenExpiry &&
-                account.tokenExpiry > 0 // Not already expired (expired = reconnect manually)
+                account.tokenExpiry > Date.now()
             ) {
-                updatedAccount = await refreshAccountToken(updatedAccount);
+                updatedAccount = await refreshAccountToken(updatedAccount) as SocialAccount;
+                // Requirement 7: Email alert logic would be triggered by the server if refresh fails
                 anyChanged = true;
             }
 
@@ -181,52 +182,5 @@ export async function runTokenHealthCheck(): Promise<void> {
         console.error('[tokenService] Health check error:', err);
     } finally {
         healthCheckRunning = false;
-    }
-}
-
-/**
- * Process OAuth callback payload from the backend redirect.
- * Parses the base64url-encoded account data and saves to storage.
- */
-export function processOAuthCallback(payloadB64: string): SocialAccount[] {
-    try {
-        const json = atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/'));
-        const rawAccounts = JSON.parse(json) as Array<{
-            pageId: string;
-            pageName: string;
-            platform: 'facebook' | 'instagram';
-            encryptedToken: string;
-            tokenExpiry: number;
-            subscriptionStatus: boolean;
-            instagramId: string | null;
-            instagramLinked: boolean;
-            avatarUrl: string | null;
-            connectedAt: number;
-            status: string;
-        }>;
-
-        const accounts: SocialAccount[] = rawAccounts.map(raw => ({
-            id: raw.instagramId && raw.platform === 'instagram'
-                ? `ig_${raw.instagramId}`
-                : `fb_${raw.pageId}`,
-            userId: '', // Will be set by storageService with tenant ID
-            platform: raw.platform === 'instagram' ? 'Instagram' : 'Facebook',
-            name: raw.pageName,
-            connected: true,
-            avatarUrl: raw.avatarUrl || undefined,
-            lastSync: Date.now(),
-            accessToken: raw.encryptedToken,
-            tokenExpiry: raw.tokenExpiry,
-            pageId: raw.pageId,
-            instagramId: raw.instagramId || undefined,
-            instagramLinked: raw.instagramLinked,
-            subscriptionStatus: raw.subscriptionStatus,
-            status: 'healthy' as AccountHealthStatus,
-        }));
-
-        return accounts;
-    } catch (err) {
-        console.error('[tokenService] Failed to parse OAuth callback payload:', err);
-        return [];
     }
 }

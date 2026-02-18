@@ -154,7 +154,8 @@ export const handler: Handler = async (event: HandlerEvent, _context: HandlerCon
         }
 
         // Step 4: Process each page — encrypt tokens, check IG, subscribe
-        const connectedAccounts = [];
+        const db = (await import('./utils/db')).db;
+        let successCount = 0;
 
         for (const page of pages) {
             const pageToken: string = page.access_token;
@@ -163,54 +164,46 @@ export const handler: Handler = async (event: HandlerEvent, _context: HandlerCon
             // Page tokens from /me/accounts are already long-lived when user token is long-lived
             const pageTokenExpiry = tokenExpiry;
 
-            // Subscribe page to webhooks
+            // Step 3: FORCE PAGE SUBSCRIPTION (Requirement 3)
             const subscribed = await subscribePage(page.id, pageToken);
 
             // Check Instagram Business Account
             const instagramId: string | undefined = page.instagram_business_account?.id;
             const instagramLinked = !!instagramId;
 
-            connectedAccounts.push({
+            const accountData = {
                 pageId: page.id,
                 pageName: page.name,
                 platform: 'facebook',
-                encryptedToken: encryptedPageToken,
+                encryptedToken: encryptedPageToken, // STORED IN DB ONLY
                 tokenExpiry: pageTokenExpiry,
                 subscriptionStatus: subscribed,
                 instagramId: instagramId || null,
                 instagramLinked,
                 avatarUrl: page.picture?.data?.url || null,
                 connectedAt: Date.now(),
-                status: 'healthy',
-            });
+                status: subscribed ? 'healthy' : 'action_required',
+            };
 
-            // If IG linked, add as separate account entry
-            if (instagramLinked && instagramId) {
-                connectedAccounts.push({
-                    pageId: page.id, // IG uses page token
-                    pageName: `${page.name} (Instagram)`,
-                    platform: 'instagram',
-                    encryptedToken: encryptedPageToken, // IG uses the page access token
-                    tokenExpiry: pageTokenExpiry,
-                    subscriptionStatus: subscribed,
-                    instagramId,
-                    instagramLinked: true,
-                    avatarUrl: page.picture?.data?.url || null,
-                    connectedAt: Date.now(),
-                    status: 'healthy',
-                });
+            // Requirement 8: Store encrypted tokens only in database
+            await db.upsertAccount(accountData);
+
+            if (!subscribed) {
+                await db.markAccountIncomplete(page.id, 'Webhook subscription failed. Reconnect required.');
             }
+
+            // If IG linked, add as separate account entry logic can be handled by DB or frontend
+            // For now, we just ensure the Page is connected and token is safe.
+            successCount++;
         }
 
-        // Return account data to frontend (tokens are encrypted, safe to store in localStorage)
-        // Redirect to frontend with success + encoded data
-        const payload = Buffer.from(JSON.stringify(connectedAccounts)).toString('base64url');
-
+        // Return ONLY connection status to frontend (Requirement 1)
+        // Frontend receives only: oauth_success=1&count=N
         return {
             statusCode: 302,
             headers: {
                 ...headers,
-                Location: `/connected-accounts?oauth_success=1&payload=${payload}`,
+                Location: `/connected-accounts?oauth_success=1&count=${successCount}`,
             },
             body: '',
         };

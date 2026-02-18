@@ -50,80 +50,6 @@ interface WebhookPayload {
 export const webhookService = {
 
     /**
-     * Process an incoming webhook payload.
-     * In production this runs server-side in fb-webhook.ts.
-     * This client-side version is used for simulation/testing only.
-     *
-     * NOTE: Signature verification is intentionally NOT done here —
-     * it requires the App Secret which must stay server-side.
-     */
-    handleIncomingWebhook: async (payload: WebhookPayload): Promise<{ status: number; message: string }> => {
-        for (const entry of payload.entry) {
-            if (entry.changes) {
-                for (const change of entry.changes) {
-                    const platformEventId = change.value.comment_id || `${entry.id}_${entry.time}`;
-
-                    // Idempotency check
-                    const existing = storageService.findWebhookEventByPlatformId(platformEventId);
-                    if (existing) {
-                        console.log(`[Webhook] Duplicate event ${platformEventId} ignored.`);
-                        continue;
-                    }
-
-                    const event: WebhookEvent = {
-                        id: crypto.randomUUID(),
-                        platformEventId,
-                        platform: payload.object === 'instagram' ? 'Instagram' : 'Facebook',
-                        payload: { changes: [change] },
-                        receivedAt: Date.now(),
-                        status: 'pending',
-                        retryCount: 0,
-                    };
-
-                    storageService.saveWebhookEvent(event);
-                    queueService.addJob('process_webhook', event);
-                }
-            }
-        }
-
-        return { status: 200, message: 'Event Received' };
-    },
-
-    /**
-     * Simulate a test comment webhook event for development/testing.
-     * Uses a locally-computed HMAC for simulation only (no App Secret exposed).
-     */
-    simulateTestComment: async (pageId: string): Promise<void> => {
-        const payload: WebhookPayload = {
-            object: 'page',
-            entry: [{
-                id: pageId,
-                time: Date.now(),
-                changes: [{
-                    field: 'feed',
-                    value: {
-                        item: 'comment',
-                        comment_id: `TEST_COMMENT_${Date.now()}`,
-                        message: 'How much is shipping to Algiers?',
-                        sender_name: 'Test User',
-                        post_id: 'POST_ID',
-                    },
-                }],
-            }],
-        };
-
-        console.log('--- SIMULATING INCOMING WEBHOOK (client-side, no signature) ---');
-        const result = await webhookService.handleIncomingWebhook(payload);
-        console.log('Webhook Result:', result);
-
-        if (result.status === 200) {
-            alert('Webhook Event Queued! Check System Health tab in Settings.');
-        } else {
-            alert(`Webhook Failed: ${result.message}`);
-        }
-    },
-
-    /**
      * Get the webhook configuration info for display in the UI.
      * Users need this to configure their Meta App webhook settings.
      */
@@ -134,7 +60,7 @@ export const webhookService = {
     }),
 
     /**
-     * Update the last webhook timestamp for an account (called when webhook received).
+     * Update the last webhook timestamp for an account (called when webhook processed).
      */
     updateAccountWebhookTimestamp: (pageId: string): void => {
         const accounts = storageService.getAccounts();

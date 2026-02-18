@@ -1,6 +1,6 @@
 // Version: 1.2.6 - Build Trigger
 import React, { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useUser, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
@@ -156,9 +156,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ToastProvider>
-      <HashRouter>
+      <BrowserRouter>
         <AppContent />
-      </HashRouter>
+      </BrowserRouter>
     </ToastProvider>
   );
 };

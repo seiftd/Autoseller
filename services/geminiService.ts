@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { storageService } from './storageService';
 import { Product } from '../types';
 
-const apiKey = process.env.API_KEY || 'dummy-key'; 
+const apiKey = import.meta.env.VITE_API_KEY || 'dummy-key';
 const ai = new GoogleGenAI({ apiKey });
 
 interface IntentAnalysis {
@@ -86,16 +86,16 @@ export const geminiService = {
     const findProduct = () => {
       if (!entities.productName) return null;
       const lower = entities.productName.toLowerCase();
-      
+
       // Filter by country if detected
       let candidates = products;
       if (entities.country) {
-          const countryLower = entities.country.toLowerCase();
-          // Simplified mapping: assume we can match country code or name from mock data
-          // In real app, we'd query Country list
-          const countryMap: {[key:string]: string} = { 'algeria': 'dz', 'france': 'fr', 'morocco': 'ma', 'tunisia': 'tn' };
-          const cid = countryMap[countryLower];
-          if (cid) candidates = candidates.filter(p => p.targetCountryId === cid);
+        const countryLower = entities.country.toLowerCase();
+        // Simplified mapping: assume we can match country code or name from mock data
+        // In real app, we'd query Country list
+        const countryMap: { [key: string]: string } = { 'algeria': 'dz', 'france': 'fr', 'morocco': 'ma', 'tunisia': 'tn' };
+        const cid = countryMap[countryLower];
+        if (cid) candidates = candidates.filter(p => p.targetCountryId === cid);
       }
 
       return candidates.find(p => p.name.toLowerCase().includes(lower) || p.description.toLowerCase().includes(lower)) || null;
@@ -118,49 +118,49 @@ export const geminiService = {
 
       case 'delivery_inquiry':
         if (!product && !entities.region) return "Delivery available to Algeria, France, Morocco, and Tunisia. Payment methods vary by country.";
-        
-        if (product) {
-            const defaultCost = product.shipping.defaultCost;
-            // Check specific region cost
-            let cost = defaultCost;
-            let costText = "";
-            
-            // Try to match region roughly
-            if (entities.region) {
-                const matchedRegion = Object.keys(product.shipping.locationCosts).find(r => r.toLowerCase() === entities.region?.toLowerCase());
-                if (matchedRegion) {
-                    cost = product.shipping.locationCosts[matchedRegion];
-                    costText = `Delivery to ${matchedRegion} is ${cost} ${product.currency}.`;
-                } else {
-                    costText = `Delivery starts from ${defaultCost} ${product.currency}.`;
-                }
-            } else {
-                costText = `Delivery starts from ${defaultCost} ${product.currency}.`;
-            }
-            
-            if (product.shipping.type === 'free') {
-                costText = "Delivery is FREE.";
-            }
 
-            return `${costText} Payment is ${product.paymentMethods.join(' or ')}.`;
+        if (product) {
+          const defaultCost = product.shipping.defaultCost;
+          // Check specific region cost
+          let cost = defaultCost;
+          let costText = "";
+
+          // Try to match region roughly
+          if (entities.region) {
+            const matchedRegion = Object.keys(product.shipping.locationCosts).find(r => r.toLowerCase() === entities.region?.toLowerCase());
+            if (matchedRegion) {
+              cost = product.shipping.locationCosts[matchedRegion];
+              costText = `Delivery to ${matchedRegion} is ${cost} ${product.currency}.`;
+            } else {
+              costText = `Delivery starts from ${defaultCost} ${product.currency}.`;
+            }
+          } else {
+            costText = `Delivery starts from ${defaultCost} ${product.currency}.`;
+          }
+
+          if (product.shipping.type === 'free') {
+            costText = "Delivery is FREE.";
+          }
+
+          return `${costText} Payment is ${product.paymentMethods.join(' or ')}.`;
         }
         return `Delivery costs vary by product and location. Please specify the product name.`;
 
       case 'order_intent':
         if (!product) return "Great! Please let me know which product you want to order.";
-        
+
         if (entities.phone && entities.region) {
-           const defaultCost = product.shipping.defaultCost;
-           const matchedRegion = Object.keys(product.shipping.locationCosts).find(r => r.toLowerCase() === entities.region?.toLowerCase());
-           const shipping = matchedRegion ? product.shipping.locationCosts[matchedRegion] : defaultCost;
-           
-           const total = product.price + shipping;
-           return `Order received for ${product.name}! Total: ${total} ${product.currency}. We will contact you on ${entities.phone}.`;
+          const defaultCost = product.shipping.defaultCost;
+          const matchedRegion = Object.keys(product.shipping.locationCosts).find(r => r.toLowerCase() === entities.region?.toLowerCase());
+          const shipping = matchedRegion ? product.shipping.locationCosts[matchedRegion] : defaultCost;
+
+          const total = product.price + shipping;
+          return `Order received for ${product.name}! Total: ${total} ${product.currency}. We will contact you on ${entities.phone}.`;
         }
-        
-        return isComment 
-            ? "Please send us a private message with your Name, Phone, and Address to order."
-            : `To order ${product.name}, please provide: Full Name, Address (Region), and Phone Number.`;
+
+        return isComment
+          ? "Please send us a private message with your Name, Phone, and Address to order."
+          : `To order ${product.name}, please provide: Full Name, Address (Region), and Phone Number.`;
 
       default:
         return "I'm here to help! Ask me about prices or delivery.";

@@ -4,12 +4,12 @@ import { authService } from './authService';
 
 // In a real backend, this key would be in a secure Vault or Environment Variable.
 // For this client-side demo, we derive it from a static secret or user password.
-const APP_SECRET_KEY = process.env.APP_SECRET || 'REPLYGENIE_SUPER_SECRET_KEY_2025';
+const APP_SECRET_KEY = import.meta.env.VITE_APP_SECRET || 'REPLYGENIE_SUPER_SECRET_KEY_2025';
 
 export const securityService = {
-  
+
   // --- ENCRYPTION (AES-GCM) ---
-  
+
   async encrypt(text: string): Promise<string> {
     try {
       const enc = new TextEncoder();

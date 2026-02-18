@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Shield, FileText, Trash2, Mail, Lock, CheckCircle2, AlertCircle, Facebook, Instagram } from 'lucide-react';
+import { ArrowLeft, Shield, FileText, Trash2, Mail, Lock, CheckCircle2, CircleAlert, Facebook, Instagram } from 'lucide-react';
 
 const LegalLayout: React.FC<{ title: string; lastUpdated: string; children: React.ReactNode }> = ({ title, lastUpdated, children }) => (
   <div className="min-h-screen bg-[#020617] text-slate-300 font-sans">
@@ -317,7 +317,7 @@ export const SecurityPage: React.FC = () => (
 
       <div className="p-8 bg-slate-900/50 border border-slate-800 rounded-3xl">
         <div className="w-12 h-12 bg-orange-500/10 rounded-2xl flex items-center justify-center text-orange-400 mb-6">
-          <AlertCircle size={24} />
+          <CircleAlert size={24} />
         </div>
         <h3 className="text-xl font-bold text-white mb-4">Tenant Isolation</h3>
         <p className="text-slate-400 text-sm leading-relaxed">

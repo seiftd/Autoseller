@@ -39,7 +39,7 @@ export const facebookService = {
    * The callback is handled server-side by fb-oauth-callback.ts
    * No App Secret is used here — only the App ID (safe to expose).
    */
-  initiateOAuth: (): void => {
+  initiateOAuth: (source: 'facebook' | 'instagram' = 'facebook'): void => {
     const appId = import.meta.env.VITE_FB_APP_ID;
     const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
 
@@ -55,13 +55,27 @@ export const facebookService = {
     oauthUrl.searchParams.set('redirect_uri', redirectUri);
     oauthUrl.searchParams.set('scope', REQUIRED_SCOPES.join(','));
     oauthUrl.searchParams.set('response_type', 'code');
-    oauthUrl.searchParams.set('state', crypto.randomUUID()); // CSRF protection
+    const state = `${source}_${crypto.randomUUID()}`; // encode source in state
+    oauthUrl.searchParams.set('state', state);
 
     // Store state for CSRF validation on return
-    sessionStorage.setItem('fb_oauth_state', oauthUrl.searchParams.get('state')!);
+    sessionStorage.setItem('fb_oauth_state', state);
 
     window.location.href = oauthUrl.toString();
   },
+
+  /**
+   * Initiates Instagram Business account connection.
+   * Instagram Business accounts are linked through Facebook Pages (Meta's architecture).
+   * This uses the same OAuth flow but emphasizes Instagram permissions.
+   */
+  initiateInstagramOAuth: (): void => {
+    // Instagram Business API uses the same Facebook OAuth dialog.
+    // The instagram_basic, instagram_content_publish, instagram_manage_comments,
+    // and instagram_manage_messages scopes are already included in REQUIRED_SCOPES.
+    facebookService.initiateOAuth('instagram');
+  },
+
 
   /**
    * Decrypt and use a page access token for API calls.

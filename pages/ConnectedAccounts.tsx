@@ -21,6 +21,7 @@ interface Props {
 export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
     const [accounts, setAccounts] = useState<SocialAccount[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingIg, setLoadingIg] = useState(false);
     const [expandedStep, setExpandedStep] = useState<number | null>(null);
     const [webhookCopied, setWebhookCopied] = useState(false);
     const [tokenCopied, setTokenCopied] = useState(false);
@@ -93,6 +94,17 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
         }
     };
 
+    const handleConnectInstagram = () => {
+        try {
+            setLoadingIg(true);
+            facebookService.initiateInstagramOAuth();
+            // Page will redirect — loading state will reset on return
+        } catch (err: any) {
+            showToast(err.message, 'error');
+            setLoadingIg(false);
+        }
+    };
+
     const handleDisconnect = (id: string) => {
         if (!confirm('Disconnect this account? This will stop auto-replies for this page.')) return;
         const updated = accounts.filter(a => a.id !== id);
@@ -154,14 +166,25 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                 title={t.connectedAccounts[lang]}
                 subtitle="Manage your social media integrations"
                 action={
-                    <button
-                        onClick={handleConnectFacebook}
-                        disabled={loading}
-                        className="flex items-center gap-2 bg-[#1877F2] hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl transition-colors font-bold shadow-lg shadow-blue-900/20 disabled:opacity-60"
-                    >
-                        {loading ? <Spinner size="sm" /> : <Facebook size={18} />}
-                        Connect Facebook
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={handleConnectFacebook}
+                            disabled={loading || loadingIg}
+                            className="flex items-center gap-2 bg-[#1877F2] hover:bg-blue-500 text-white px-5 py-2.5 rounded-xl transition-colors font-bold shadow-lg shadow-blue-900/20 disabled:opacity-60"
+                        >
+                            {loading ? <Spinner size="sm" /> : <Facebook size={18} />}
+                            Connect Facebook
+                        </button>
+                        <button
+                            onClick={handleConnectInstagram}
+                            disabled={loading || loadingIg}
+                            className="flex items-center gap-2 text-white px-5 py-2.5 rounded-xl transition-colors font-bold shadow-lg disabled:opacity-60"
+                            style={{ background: 'linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%)' }}
+                        >
+                            {loadingIg ? <Spinner size="sm" /> : <Instagram size={18} />}
+                            Connect Instagram
+                        </button>
+                    </div>
                 }
             />
 
@@ -203,8 +226,8 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                             {/* Health Badge */}
                             <div className="absolute top-4 right-4">
                                 <span className={`text-xs font-bold px-2 py-1 rounded-full border ${healthStatus === 'healthy' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
-                                        healthStatus === 'expiring_soon' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
-                                            'bg-red-500/10 border-red-500/30 text-red-400'
+                                    healthStatus === 'expiring_soon' ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400' :
+                                        'bg-red-500/10 border-red-500/30 text-red-400'
                                     }`}>
                                     {healthInfo.emoji} {healthInfo.label}
                                 </span>
@@ -238,7 +261,7 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                                     <div className="flex items-center justify-between">
                                         <span className="text-slate-500 flex items-center gap-1"><Clock size={12} /> Token</span>
                                         <span className={`font-medium ${healthStatus === 'healthy' ? 'text-emerald-400' :
-                                                healthStatus === 'expiring_soon' ? 'text-yellow-400' : 'text-red-400'
+                                            healthStatus === 'expiring_soon' ? 'text-yellow-400' : 'text-red-400'
                                             }`}>{expiryText}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
@@ -297,22 +320,47 @@ export const ConnectedAccounts: React.FC<Props> = ({ lang }) => {
                     );
                 })}
 
-                {/* Connect New Button */}
+                {/* Connect Facebook Card */}
                 <div
-                    onClick={!loading ? handleConnectFacebook : undefined}
+                    onClick={!loading && !loadingIg ? handleConnectFacebook : undefined}
                     className={`border-2 border-dashed border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-500 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all cursor-pointer group min-h-[300px] ${loading ? 'opacity-50 pointer-events-none' : ''}`}
                 >
                     {loading ? (
                         <Spinner size="lg" className="text-blue-500 mb-4" />
                     ) : (
-                        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-inner">
-                            <Share2 size={28} className="text-blue-500" />
+                        <div className="w-16 h-16 rounded-full bg-[#1877F2]/10 border-2 border-[#1877F2]/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                            <Facebook size={28} className="text-[#1877F2]" />
                         </div>
                     )}
-                    <p className="font-bold text-lg text-slate-300">{loading ? 'Redirecting...' : 'Connect New Account'}</p>
+                    <p className="font-bold text-lg text-slate-300">{loading ? 'Redirecting...' : 'Connect Facebook Page'}</p>
                     <p className="text-xs text-slate-500 mt-2 max-w-[200px] text-center">
-                        Secure redirect-based OAuth — no tokens exposed in browser
+                        Publish products & auto-reply to comments on your Facebook Page
                     </p>
+                </div>
+
+                {/* Connect Instagram Card */}
+                <div
+                    onClick={!loading && !loadingIg ? handleConnectInstagram : undefined}
+                    className={`border-2 border-dashed border-slate-700 rounded-2xl p-6 flex flex-col items-center justify-center text-slate-500 transition-all cursor-pointer group min-h-[300px] ${loadingIg ? 'opacity-50 pointer-events-none' : 'hover:border-pink-500/50 hover:bg-pink-500/5'}`}
+                >
+                    {loadingIg ? (
+                        <Spinner size="lg" className="text-pink-500 mb-4" />
+                    ) : (
+                        <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform"
+                            style={{ background: 'linear-gradient(135deg, rgba(240,148,51,0.15) 0%, rgba(188,24,136,0.15) 100%)', border: '2px solid rgba(188,24,136,0.3)' }}
+                        >
+                            <Instagram size={28} className="text-pink-400" />
+                        </div>
+                    )}
+                    <p className="font-bold text-lg text-slate-300">{loadingIg ? 'Redirecting...' : 'Connect Instagram'}</p>
+                    <p className="text-xs text-slate-500 mt-2 max-w-[200px] text-center">
+                        Connect an Instagram Business account via your Facebook Page
+                    </p>
+                    <div className="mt-3 flex items-center gap-1 text-xs text-yellow-400/80 bg-yellow-500/10 px-3 py-1.5 rounded-full border border-yellow-500/20">
+                        <AlertTriangle size={11} />
+                        Requires Instagram Business account
+                    </div>
                 </div>
             </div>
 

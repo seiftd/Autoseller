@@ -3,7 +3,15 @@ import { storageService } from './storageService';
 import { Product } from '../types';
 
 const apiKey = import.meta.env.VITE_API_KEY || 'dummy-key';
-const ai = new GoogleGenAI({ apiKey });
+let aiInstance: GoogleGenAI | null = null;
+
+const getAI = () => {
+  if (typeof window === 'undefined') return null;
+  if (!aiInstance) {
+    aiInstance = new GoogleGenAI(apiKey);
+  }
+  return aiInstance;
+};
 
 interface IntentAnalysis {
   intent: 'price_inquiry' | 'delivery_inquiry' | 'order_intent' | 'product_info' | 'greeting' | 'other';
@@ -49,6 +57,9 @@ export const geminiService = {
           address 
         }
     `;
+
+    const ai = getAI();
+    if (!ai) throw new Error("AI client not available in this environment");
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',

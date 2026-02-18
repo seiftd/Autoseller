@@ -73,6 +73,7 @@ const MOCK_PRODUCTS: Product[] = [
 export const storageService = {
   // COUNTRIES (Global Data - No Tenant Isolation needed)
   getCountries: (): Country[] => {
+    if (typeof window === 'undefined') return DEFAULT_COUNTRIES;
     const data = localStorage.getItem(COUNTRIES_KEY);
     if (!data) {
       localStorage.setItem(COUNTRIES_KEY, JSON.stringify(DEFAULT_COUNTRIES));
@@ -81,12 +82,15 @@ export const storageService = {
     return JSON.parse(data);
   },
   saveCountries: (countries: Country[]) => {
-    localStorage.setItem(COUNTRIES_KEY, JSON.stringify(countries));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(COUNTRIES_KEY, JSON.stringify(countries));
+    }
   },
 
   // ACCOUNTS (Tenant Isolated)
   getAccounts: (): SocialAccount[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return MOCK_ACCOUNTS.filter(a => a.userId === uid);
     const data = localStorage.getItem(ACCOUNTS_KEY);
     let all: SocialAccount[] = data ? JSON.parse(data) : MOCK_ACCOUNTS;
 
@@ -95,6 +99,7 @@ export const storageService = {
   },
 
   saveAccounts: (accounts: SocialAccount[]) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const allData = localStorage.getItem(ACCOUNTS_KEY);
     let all: SocialAccount[] = allData ? JSON.parse(allData) : MOCK_ACCOUNTS;
@@ -106,6 +111,7 @@ export const storageService = {
   },
 
   toggleAccount: (id: string) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const all = storageService.getAllAccountsRaw();
     const idx = all.findIndex(a => a.id === id && a.userId === uid);
@@ -120,11 +126,13 @@ export const storageService = {
   // PRODUCTS (Tenant Isolated)
   getProducts: (): Product[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return MOCK_PRODUCTS.filter(p => p.userId === uid);
     const data = localStorage.getItem(PRODUCTS_KEY);
     let all: Product[] = data ? JSON.parse(data) : MOCK_PRODUCTS;
     return all.filter(p => p.userId === uid);
   },
   saveProduct: (product: Product) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
     const p = { ...product, userId: uid }; // Enforce ownership
@@ -139,6 +147,7 @@ export const storageService = {
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify(all));
   },
   saveProducts: (userProducts: Product[]) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
     const others = all.filter(p => p.userId !== uid);
@@ -146,6 +155,7 @@ export const storageService = {
     localStorage.setItem(PRODUCTS_KEY, JSON.stringify([...others, ...secureUserProducts]));
   },
   deleteProduct: (id: string) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const all = storageService.getAllProductsRaw();
     const filtered = all.filter(p => !(p.id === id && p.userId === uid));
@@ -155,11 +165,13 @@ export const storageService = {
   // ORDERS (Tenant Isolated)
   getOrders: (): Order[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(ORDERS_KEY);
     const all: Order[] = data ? JSON.parse(data) : [];
     return all.filter(o => o.userId === uid);
   },
   addOrder: (order: Order) => {
+    if (typeof window === 'undefined') return;
     const all = storageService.getAllOrdersRaw();
     all.unshift(order);
     localStorage.setItem(ORDERS_KEY, JSON.stringify(all));
@@ -168,11 +180,13 @@ export const storageService = {
   // PUBLISH LOGS (Tenant Isolated)
   getPublishLogs: (): PublishLog[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(PUBLISH_LOGS_KEY);
     const all: PublishLog[] = data ? JSON.parse(data) : [];
     return all.filter(l => l.userId === uid);
   },
   addPublishLog: (log: PublishLog) => {
+    if (typeof window === 'undefined') return;
     const all = storageService.getAllPublishLogsRaw();
     all.unshift(log);
     if (all.length > 500) all.pop();
@@ -182,11 +196,13 @@ export const storageService = {
   // AUDIT / ACTIVITY LOGS (Tenant Isolated)
   getAuditLogs: (): AuditLog[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(AUDIT_LOGS_KEY);
     const all: AuditLog[] = data ? JSON.parse(data) : [];
     return all.filter(l => l.userId === uid);
   },
   addAuditLog: (log: AuditLog) => {
+    if (typeof window === 'undefined') return;
     const data = localStorage.getItem(AUDIT_LOGS_KEY);
     const all: AuditLog[] = data ? JSON.parse(data) : [];
     all.unshift(log);
@@ -196,8 +212,9 @@ export const storageService = {
 
   // SPAM LOGS
   logSpamProtection: (userId: string, reason: any, details: any) => {
+    if (typeof window === 'undefined') return;
     const log: SpamProtectionLog = {
-      id: crypto.randomUUID(),
+      id: window.crypto.randomUUID(),
       userId,
       reason,
       details,
@@ -212,17 +229,20 @@ export const storageService = {
   // WORKSPACE MEMBERS
   getWorkspaceMembers: (): WorkspaceMember[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
     const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
     return all.filter(m => m.workspaceId === uid);
   },
   addWorkspaceMember: (member: WorkspaceMember) => {
+    if (typeof window === 'undefined') return;
     const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
     const all: WorkspaceMember[] = data ? JSON.parse(data) : [];
     all.push(member);
     localStorage.setItem(WORKSPACE_MEMBERS_KEY, JSON.stringify(all));
   },
   removeWorkspaceMember: (memberId: string) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const data = localStorage.getItem(WORKSPACE_MEMBERS_KEY);
     let all: WorkspaceMember[] = data ? JSON.parse(data) : [];
@@ -233,25 +253,23 @@ export const storageService = {
   // ADD-ONS
   getUserAddons: (): UserAddOn[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(USER_ADDONS_KEY);
     const all: UserAddOn[] = data ? JSON.parse(data) : [];
     return all.filter(addon => addon.userId === uid && addon.active);
   },
   toggleAddon: (addonId: string, active: boolean) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const data = localStorage.getItem(USER_ADDONS_KEY);
     let all: UserAddOn[] = data ? JSON.parse(data) : [];
-
-    // If feature type, we just check existence. If quantity type, we add/remove instance.
-    // For this simplified marketplace, we assume 1 instance of each 'feature' type and allow multiples for 'quantity'.
-    // However, to keep it simple for the UI: One entry per Addon ID.
 
     const existingIdx = all.findIndex(a => a.userId === uid && a.addonId === addonId);
 
     if (active) {
       if (existingIdx === -1) {
         all.push({
-          id: crypto.randomUUID(),
+          id: window.crypto.randomUUID(),
           userId: uid,
           addonId,
           active: true,
@@ -271,6 +289,7 @@ export const storageService = {
   // NOTIFICATION PREFERENCES
   getNotificationPreferences: (): NotificationPreferences => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return { userId: uid, notifyOnPublishFail: true, notifyOnTokenExpiry: true, notifyOnWeeklyReport: false };
     const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
     const all: NotificationPreferences[] = data ? JSON.parse(data) : [];
     return all.find(p => p.userId === uid) || {
@@ -278,6 +297,7 @@ export const storageService = {
     };
   },
   saveNotificationPreferences: (prefs: NotificationPreferences) => {
+    if (typeof window === 'undefined') return;
     const data = localStorage.getItem(NOTIFICATION_PREFS_KEY);
     let all: NotificationPreferences[] = data ? JSON.parse(data) : [];
     const idx = all.findIndex(p => p.userId === prefs.userId);
@@ -288,10 +308,12 @@ export const storageService = {
 
   // SYSTEM LEVEL (Events, Jobs, Errors)
   getWebhookEvents: (): WebhookEvent[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(WEBHOOK_EVENTS_KEY);
     return data ? JSON.parse(data) : [];
   },
   saveWebhookEvent: (event: WebhookEvent) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getWebhookEvents();
     const existingIndex = list.findIndex(e => e.id === event.id);
     if (existingIndex >= 0) list[existingIndex] = event;
@@ -304,26 +326,32 @@ export const storageService = {
     return list.find(e => e.platformEventId === platformId);
   },
   getJobs: (): Job[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(JOBS_KEY);
     return data ? JSON.parse(data) : [];
   },
   saveJobs: (jobs: Job[]) => {
+    if (typeof window === 'undefined') return;
     localStorage.setItem(JOBS_KEY, JSON.stringify(jobs));
   },
   addJob: (job: Job) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getJobs();
     list.push(job);
     localStorage.setItem(JOBS_KEY, JSON.stringify(list));
   },
   removeJob: (id: string) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getJobs().filter(j => j.id !== id);
     localStorage.setItem(JOBS_KEY, JSON.stringify(list));
   },
   getErrorLogs: (): ErrorLog[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(ERROR_LOGS_KEY);
     return data ? JSON.parse(data) : [];
   },
   logError: (log: ErrorLog) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getErrorLogs();
     list.unshift(log);
     if (list.length > 100) list.pop();
@@ -331,10 +359,12 @@ export const storageService = {
   },
   // TOKEN REFRESH LOGS
   getTokenRefreshLogs: (): TokenRefreshLog[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(TOKEN_REFRESH_LOGS_KEY);
     return data ? JSON.parse(data) : [];
   },
   saveTokenRefreshLog: (log: TokenRefreshLog) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getTokenRefreshLogs();
     list.unshift(log);
     if (list.length > 200) list.length = 200;
@@ -343,6 +373,7 @@ export const storageService = {
 
   // ACCOUNT HEALTH
   updateAccountStatus: (id: string, status: AccountHealthStatus) => {
+    if (typeof window === 'undefined') return;
     const all = storageService.getAllAccountsRaw();
     const idx = all.findIndex(a => a.id === id);
     if (idx >= 0) {
@@ -360,15 +391,18 @@ export const storageService = {
   },
 
   getFailedJobs: (): Job[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(FAILED_JOBS_KEY);
     return data ? JSON.parse(data) : [];
   },
   saveFailedJob: (job: Job) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getFailedJobs();
     list.unshift(job);
     localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
   },
   removeFailedJob: (id: string) => {
+    if (typeof window === 'undefined') return;
     const list = storageService.getFailedJobs().filter(j => j.id !== id);
     localStorage.setItem(FAILED_JOBS_KEY, JSON.stringify(list));
   },
@@ -396,18 +430,22 @@ export const storageService = {
 
   // RAW HELPERS (Internal use to get full lists for updates)
   getAllAccountsRaw: (): SocialAccount[] => {
+    if (typeof window === 'undefined') return MOCK_ACCOUNTS;
     const data = localStorage.getItem(ACCOUNTS_KEY);
     return data ? JSON.parse(data) : MOCK_ACCOUNTS;
   },
   getAllProductsRaw: (): Product[] => {
+    if (typeof window === 'undefined') return MOCK_PRODUCTS;
     const data = localStorage.getItem(PRODUCTS_KEY);
     return data ? JSON.parse(data) : MOCK_PRODUCTS;
   },
   getAllOrdersRaw: (): Order[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(ORDERS_KEY);
     return data ? JSON.parse(data) : [];
   },
   getAllPublishLogsRaw: (): PublishLog[] => {
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(PUBLISH_LOGS_KEY);
     return data ? JSON.parse(data) : [];
   },
@@ -415,12 +453,14 @@ export const storageService = {
   // CONVERSATIONS
   getConversations: (): Conversation[] => {
     const uid = getTenantId();
+    if (typeof window === 'undefined') return [];
     const data = localStorage.getItem(CONVERSATIONS_KEY);
     if (!data) return [];
     const all: Conversation[] = JSON.parse(data);
     return all.filter(c => c.userId === uid);
   },
   saveConversation: (conv: Conversation) => {
+    if (typeof window === 'undefined') return;
     const uid = getTenantId();
     const data = localStorage.getItem(CONVERSATIONS_KEY);
     const all: Conversation[] = data ? JSON.parse(data) : [];

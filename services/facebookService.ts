@@ -40,6 +40,8 @@ export const facebookService = {
    * No App Secret is used here — only the App ID (safe to expose).
    */
   initiateOAuth: (source: 'facebook' | 'instagram' = 'facebook'): void => {
+    if (typeof window === 'undefined') return;
+
     const appId = import.meta.env.VITE_FB_APP_ID;
     const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
 
@@ -55,11 +57,13 @@ export const facebookService = {
     oauthUrl.searchParams.set('redirect_uri', redirectUri);
     oauthUrl.searchParams.set('scope', REQUIRED_SCOPES.join(','));
     oauthUrl.searchParams.set('response_type', 'code');
-    const state = `${source}_${crypto.randomUUID()}`; // encode source in state
+    const state = `${source}_${window.crypto?.randomUUID ? window.crypto.randomUUID() : Math.random().toString(36)}`;
     oauthUrl.searchParams.set('state', state);
 
     // Store state for CSRF validation on return
-    sessionStorage.setItem('fb_oauth_state', state);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('fb_oauth_state', state);
+    }
 
     window.location.href = oauthUrl.toString();
   },
@@ -157,7 +161,7 @@ export const facebookService = {
   },
 
   getWebhookUrl: (): string => {
-    const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+    const siteUrl = import.meta.env.VITE_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
     return `${siteUrl}/.netlify/functions/fb-webhook`;
   },
 

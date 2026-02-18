@@ -3,7 +3,7 @@ import { storageService } from './storageService';
 import { workerService } from './workerService';
 
 export const queueService = {
-  
+
   // Start the queue processor loop
   start: () => {
     setInterval(queueService.processQueue, 5000); // Check queue every 5 seconds
@@ -12,7 +12,7 @@ export const queueService = {
 
   addJob: (type: 'process_webhook' | 'publish_product', payload: any) => {
     const job: Job = {
-      id: crypto.randomUUID(),
+      id: (typeof window !== 'undefined' && window.crypto?.randomUUID) ? window.crypto.randomUUID() : Math.random().toString(36).substring(7),
       type,
       payload,
       status: 'pending',
@@ -28,11 +28,11 @@ export const queueService = {
   processQueue: async () => {
     const jobs = storageService.getJobs();
     const now = Date.now();
-    
+
     // Find jobs that are pending/processing and ready for attempt
-    const pendingJobs = jobs.filter(j => 
-        (j.status === 'pending' || j.status === 'processing') && 
-        j.nextAttemptAt <= now
+    const pendingJobs = jobs.filter(j =>
+      (j.status === 'pending' || j.status === 'processing') &&
+      j.nextAttemptAt <= now
     );
 
     if (pendingJobs.length === 0) return;
@@ -50,24 +50,24 @@ export const queueService = {
 
     try {
       console.log(`[Queue] Processing Job ${job.id} (Attempt ${job.attempts})`);
-      
+
       // 2. Route to Worker
       if (job.type === 'process_webhook') {
-          await workerService.processWebhookJob(job);
+        await workerService.processWebhookJob(job);
       } else if (job.type === 'publish_product') {
-          // Future implementation for async publishing
-          await new Promise(r => setTimeout(r, 1000)); // Sim
+        // Future implementation for async publishing
+        await new Promise(r => setTimeout(r, 1000)); // Sim
       }
 
       // 3. Success
       job.status = 'completed';
       queueService.updateJob(job);
       // Optional: Archive completed jobs to keep DB clean
-      queueService.removeJob(job.id); 
+      queueService.removeJob(job.id);
 
     } catch (error: any) {
       console.error(`[Queue] Job ${job.id} Failed:`, error);
-      
+
       // 4. Handle Failure
       if (job.attempts < job.maxAttempts) {
         // Retry with Exponential Backoff: 10s, 20s, 40s
@@ -76,33 +76,33 @@ export const queueService = {
         job.nextAttemptAt = Date.now() + backoff;
         job.error = error.message;
         queueService.updateJob(job);
-        
+
         storageService.logError({
-            id: crypto.randomUUID(),
-            type: 'job',
-            severity: 'warning',
-            message: `Job ${job.id} failed, retrying in ${backoff/1000}s`,
-            stack: error.stack,
-            timestamp: Date.now(),
-            metadata: { jobId: job.id, attempts: job.attempts }
+          id: (typeof window !== 'undefined' && window.crypto?.randomUUID) ? window.crypto.randomUUID() : Math.random().toString(36),
+          type: 'job',
+          severity: 'warning',
+          message: `Job ${job.id} failed, retrying in ${backoff / 1000}s`,
+          stack: error.stack,
+          timestamp: Date.now(),
+          metadata: { jobId: job.id, attempts: job.attempts }
         });
       } else {
         // Dead Letter Queue
         job.status = 'failed';
         job.error = error.message;
         queueService.updateJob(job);
-        
+
         storageService.saveFailedJob(job);
         storageService.removeJob(job.id); // Remove from active queue
 
         storageService.logError({
-            id: crypto.randomUUID(),
-            type: 'job',
-            severity: 'error',
-            message: `Job ${job.id} failed permanently. Moved to DLQ.`,
-            stack: error.stack,
-            timestamp: Date.now(),
-            metadata: { jobId: job.id }
+          id: (typeof window !== 'undefined' && window.crypto?.randomUUID) ? window.crypto.randomUUID() : Math.random().toString(36),
+          type: 'job',
+          severity: 'error',
+          message: `Job ${job.id} failed permanently. Moved to DLQ.`,
+          stack: error.stack,
+          timestamp: Date.now(),
+          metadata: { jobId: job.id }
         });
       }
     }
@@ -123,19 +123,19 @@ export const queueService = {
   },
 
   retryFailedJob: (id: string) => {
-      const failedJobs = storageService.getFailedJobs();
-      const jobToRetry = failedJobs.find(j => j.id === id);
-      
-      if (jobToRetry) {
-          // Reset job stats
-          jobToRetry.status = 'pending';
-          jobToRetry.attempts = 0;
-          jobToRetry.nextAttemptAt = Date.now();
-          jobToRetry.error = undefined;
-          
-          storageService.addJob(jobToRetry); // Move back to active queue
-          storageService.removeFailedJob(id); // Remove from DLQ
-          console.log(`[Queue] Retrying failed job ${id}`);
-      }
+    const failedJobs = storageService.getFailedJobs();
+    const jobToRetry = failedJobs.find(j => j.id === id);
+
+    if (jobToRetry) {
+      // Reset job stats
+      jobToRetry.status = 'pending';
+      jobToRetry.attempts = 0;
+      jobToRetry.nextAttemptAt = Date.now();
+      jobToRetry.error = undefined;
+
+      storageService.addJob(jobToRetry); // Move back to active queue
+      storageService.removeFailedJob(id); // Remove from DLQ
+      console.log(`[Queue] Retrying failed job ${id}`);
+    }
   }
 };

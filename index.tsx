@@ -15,9 +15,13 @@ if (!rootElement) {
   throw new Error("Could not find root element to mount to");
 }
 
+import { ErrorBoundary } from './components/ErrorBoundary';
+
 const root = ReactDOM.createRoot(rootElement);
 root.render(
-  <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
-    <App />
-  </ClerkProvider>
+  <ErrorBoundary>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
+      <App />
+    </ClerkProvider>
+  </ErrorBoundary>
 );

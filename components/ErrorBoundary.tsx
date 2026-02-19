@@ -29,9 +29,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             return (
                 <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 text-center">
                     <div className="max-w-md space-y-6">
-                        <h1 className="text-4xl font-bold text-white tracking-tight">System Restart Required</h1>
+                        <h1 className="text-4xl font-bold text-white tracking-tight">Something went wrong</h1>
                         <p className="text-slate-400 leading-relaxed">
-                            We've encountered a critical initialization error. This usually happens due to a browser security setting or a network timeout.
+                            The application encountered an unexpected error. Please try reloading the page.
                         </p>
                         {import.meta.env.MODE === 'development' && (
                             <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg text-red-400 text-xs text-left overflow-auto max-h-40">

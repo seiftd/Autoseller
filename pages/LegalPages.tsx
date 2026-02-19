@@ -42,7 +42,7 @@ export function PrivacyPolicy() {
           ReplyGenie ("the Service") is committed to maintaining the highest standards of data privacy and transparency. To provide our automation services, we collect:
         </p>
         <ul className="list-disc pl-5 space-y-3 mt-4">
-          <li><strong>Account Identifiers:</strong> Your name and email address provided via Clerk authentication.</li>
+          <li><strong>Account Identifiers:</strong> Your name and email address provided via Firebase authentication.</li>
           <li><strong>Meta Platform Data:</strong> Facebook Page IDs, Instagram Business Account IDs, and Page metadata.</li>
           <li><strong>Authentication Tokens:</strong> Long-lived Page Access Tokens (PAT). These are stored in an encrypted format using AES-256 and are never exposed to the client-side of the application.</li>
         </ul>

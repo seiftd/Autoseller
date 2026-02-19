@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { SectionHeader } from '../components/PremiumUI';
 import { CheckCircle2, Zap, Crown, TrendingUp } from 'lucide-react';
 import { Language } from '../types';
@@ -10,11 +10,12 @@ interface Props {
 }
 
 export const Billing: React.FC<Props> = ({ lang }) => {
-    const { user } = useUser();
+    const { currentUser } = useAuth();
     const t = TEXTS;
 
     // Placeholder for real subscription status check
-    const currentPlan = (user?.publicMetadata?.plan as string) || 'free';
+    // In a real app with Firebase, you would check custom claims or a user document
+    const currentPlan = 'free';
 
     const handleCheckout = (url: string) => {
         window.location.href = url;
@@ -89,8 +90,8 @@ export const Billing: React.FC<Props> = ({ lang }) => {
                                 onClick={() => handleCheckout(plan.checkoutUrl)}
                                 disabled={isCurrent}
                                 className={`w-full py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${isCurrent
-                                        ? 'bg-slate-700 text-slate-400 cursor-default'
-                                        : 'bg-white text-slate-900 hover:bg-slate-200 shadow-lg shadow-white/5'
+                                    ? 'bg-slate-700 text-slate-400 cursor-default'
+                                    : 'bg-white text-slate-900 hover:bg-slate-200 shadow-lg shadow-white/5'
                                     }`}
                             >
                                 {isCurrent ? 'Current Plan' : (

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { storageService } from '../services/storageService';
 import { rateLimitService } from '../services/rateLimitService';
+import { useAuth } from '../contexts/AuthContext';
 import { authService } from '../services/authService';
 import { UserStats, Language, SocialAccount } from '../types';
 import { TEXTS } from '../constants';
 import { StatsCard } from '../components/StatsCard';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Zap, Activity, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { ShoppingBag, DollarSign, Package, Clock, CheckCircle, Zap, Activity, ShieldCheck } from 'lucide-react';
 import { Skeleton, ProgressBar, SectionHeader, Badge } from '../components/PremiumUI';
 
 interface Props {
@@ -14,16 +14,22 @@ interface Props {
 }
 
 export const Dashboard: React.FC<Props> = ({ lang }) => {
+    const { currentUser } = useAuth();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [dailyUsage, setDailyUsage] = useState(0);
     const [systemHealth, setSystemHealth] = useState(true);
     const [accounts, setAccounts] = useState<SocialAccount[]>([]);
 
-    const user = authService.getCurrentUser();
+    const userProfile = authService.getCurrentUser();
     const t = TEXTS;
 
     useEffect(() => {
+        // Sync the app's internal user state with Firebase
+        if (currentUser) {
+            authService.syncUser(currentUser);
+        }
+
         // Simulate loading for Skeleton demo
         setTimeout(() => {
             loadData();
@@ -33,33 +39,22 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
         // Poll for updates
         const interval = setInterval(loadData, 10000);
         return () => clearInterval(interval);
-    }, []);
+    }, [currentUser]);
 
     const loadData = () => {
         const currentStats = storageService.getStats();
         setStats(currentStats);
         setAccounts(storageService.getAccounts());
 
-        if (user) {
-            setDailyUsage(rateLimitService.getDailyUsage(user.id));
+        if (currentUser) {
+            setDailyUsage(rateLimitService.getDailyUsage(currentUser.uid));
         }
 
         // Mock system health check
         setSystemHealth(Math.random() > 0.1);
     };
 
-    const planLimit = user?.plan === 'free' ? 50 : (user?.plan === 'pro' ? 500 : 10000);
-
-    // Mock data for chart
-    const revenueData = [
-        { name: 'Sat', val: 4000 },
-        { name: 'Sun', val: 3000 },
-        { name: 'Mon', val: 2000 },
-        { name: 'Tue', val: 2780 },
-        { name: 'Wed', val: 1890 },
-        { name: 'Thu', val: 2390 },
-        { name: 'Fri', val: 3490 },
-    ];
+    const planLimit = userProfile?.plan === 'free' ? 50 : (userProfile?.plan === 'pro' ? 500 : 10000);
 
     // Helper to check token health
     const getAccountHealth = (acc: SocialAccount) => {
@@ -75,7 +70,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
         <div className="space-y-8 animate-fade-in pb-12">
             <SectionHeader
                 title={t.dashboard[lang]}
-                subtitle={lang === 'ar' ? `مرحباً بعودتك، ${user?.fullName || 'تاجر'}` : `Welcome back, ${user?.fullName || 'Merchant'}`}
+                subtitle={lang === 'ar' ? `مرحباً بعودتك، ${userProfile?.fullName || 'تاجر'}` : `Welcome back, ${userProfile?.fullName || 'Merchant'}`}
                 action={
                     <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${systemHealth ? 'bg-emerald-900/30 border-emerald-800 text-emerald-400' : 'bg-red-900/30 border-red-800 text-red-400'}`}>
                         <div className={`w-2 h-2 rounded-full animate-pulse ${systemHealth ? 'bg-emerald-500' : 'bg-red-500'}`}></div>
@@ -94,7 +89,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                         <div className="flex justify-between items-end mb-2">
                             <div>
                                 <h3 className="text-white font-bold text-lg">{t.dailyAiUsage[lang]}</h3>
-                                <p className="text-slate-400 text-xs">{t.plan[lang]}: <span className="uppercase text-blue-400 font-bold">{user?.plan}</span></p>
+                                <p className="text-slate-400 text-xs">{t.plan[lang]}: <span className="uppercase text-blue-400 font-bold">{userProfile?.plan || 'free'}</span></p>
                             </div>
                             <div className="text-right">
                                 <span className="text-2xl font-bold text-white">{dailyUsage}</span>
@@ -103,7 +98,7 @@ export const Dashboard: React.FC<Props> = ({ lang }) => {
                         </div>
                         <ProgressBar
                             value={dailyUsage}
-                            max={planLimit === 10000 ? dailyUsage * 1.5 : planLimit}
+                            max={planLimit === 10000 ? (dailyUsage > 0 ? dailyUsage * 1.5 : 100) : planLimit}
                             colorClass={dailyUsage > planLimit * 0.9 ? 'bg-red-500' : 'bg-blue-500'}
                         />
                     </div>

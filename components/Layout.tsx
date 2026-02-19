@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUser, useClerk } from '@clerk/clerk-react';
+import { useAuth } from '../contexts/AuthContext';
 import { TEXTS, MENU_ITEMS } from '../constants';
 import { Language } from '../types';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -14,16 +14,15 @@ interface Props {
 
 export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
   const location = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const t = TEXTS;
-  const { user: clerkUser } = useUser();
-  const { signOut } = useClerk();
+  const { currentUser, logout } = useAuth();
 
   // Simple mapping for display
-  const user = clerkUser ? {
+  const user = {
     role: 'owner', // Default
     plan: 'free'   // Default
-  } : null;
+  };
 
   const NavContent = () => (
     <>
@@ -39,8 +38,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
       <div className="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
         {MENU_ITEMS.map((item) => {
           // Role-based Access Control for Menu
-          // Simplified: Owner sees everything
-          if (item.roles && user && !item.roles.includes(user.role as any)) {
+          if (item.roles && !item.roles.includes(user.role as any)) {
             return null;
           }
 
@@ -69,11 +67,11 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
         <div className="mb-4 px-2">
           <div className="text-xs text-slate-500 uppercase font-bold mb-1">{t.role[lang]}</div>
           <div className="text-sm text-white font-medium capitalize bg-slate-800/50 px-2 py-1 rounded inline-block">
-            {user?.role === 'owner' ? t.owner[lang] : t.manager[lang]}
+            {t.owner[lang]}
           </div>
         </div>
         <button
-          onClick={() => signOut()}
+          onClick={() => logout()}
           className="flex items-center gap-3 w-full px-3 py-2.5 text-slate-400 hover:text-red-400 transition-colors rounded-xl hover:bg-red-500/5"
         >
           <LogOut size={18} className="rtl:rotate-180" />
@@ -114,7 +112,7 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
       <main className="flex-1 ltr:md:ml-64 rtl:md:mr-64 p-4 md:p-8 pt-20 md:pt-8 overflow-x-hidden flex flex-col min-h-screen">
         <div className="max-w-6xl mx-auto w-full flex-1">
           <div className="flex justify-between items-center mb-6">
-            <div className="text-white font-medium">Hello, {clerkUser?.fullName || 'User'}</div>
+            <div className="text-white font-medium">Hello, {currentUser?.email?.split('@')[0] || 'User'}</div>
             <LanguageSwitcher current={lang} onChange={setLang} />
           </div>
           {children}

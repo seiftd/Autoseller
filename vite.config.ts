@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
     },
     base: "/",
+    define: {
+      'process.env': {},
+    },
     plugins: [react()],
     esbuild: {
       drop: ['console', 'debugger'],

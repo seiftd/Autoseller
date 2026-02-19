@@ -74,13 +74,13 @@ export const Landing: React.FC = () => {
           <div className="flex items-center gap-4">
             <LanguageSwitcher current={lang} onChange={setLang} />
             <Link
-              to="/login"
+              to="/sign-in"
               className="hidden md:flex px-5 py-2.5 rounded-full border border-slate-700 hover:border-slate-500 hover:bg-slate-800 transition-all text-sm font-medium"
             >
               {content.navLogin[lang]}
             </Link>
             <Link
-              to="/login"
+              to="/sign-in"
               className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-semibold shadow-lg shadow-blue-900/20 transition-all hover:scale-105 text-sm"
             >
               {content.ctaConnect[lang]}
@@ -114,7 +114,7 @@ export const Landing: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
-              to="/login"
+              to="/sign-in"
               className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 rounded-full font-bold shadow-xl hover:shadow-2xl hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group"
             >
               {content.ctaConnect[lang]}
@@ -523,7 +523,7 @@ const PricingCard: React.FC<{ title: string, price: string, features: string[], 
       ))}
     </ul>
     <Link
-      to="/login"
+      to="/register"
       className={`w-full py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center ${featured ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-white'}`}
     >
       Choose {title}

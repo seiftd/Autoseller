@@ -94,7 +94,7 @@ export const securityService = {
       targetId,
       timestamp: Date.now(),
       details: details,
-      ipAddress: '127.0.0.1',
+      ipAddress: 'Client-Side',
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server'
     };
 

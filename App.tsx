@@ -1,10 +1,11 @@
-// Version: 1.2.6 - Build Trigger
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { useUser, SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { AuthProvider } from './contexts/AuthContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Products } from './pages/Products';
 import { Orders } from './pages/Orders';
@@ -16,34 +17,11 @@ import { PublishHistory } from './pages/PublishHistory';
 import { Activity } from './pages/Activity';
 import { Billing } from './pages/Billing';
 import { PrivacyPolicy, TermsOfService, DataDeletion, FacebookPermissions, SecurityPage } from './pages/LegalPages';
-import { authService } from './services/authService';
-import { schedulerService } from './services/schedulerService';
-import { queueService } from './services/queueService';
 import { Language } from './types';
 import { ToastProvider } from './contexts/ToastContext';
 
-// Protected Route Wrapper with Layout
-const ProtectedRoute: React.FC<{
-  children: React.ReactNode;
-  lang: Language;
-  setLang: (l: Language) => void;
-  requiredRole?: 'owner' | 'manager';
-}> = ({ children, lang, setLang, requiredRole }) => {
-  return (
-    <>
-      <SignedIn>
-        <Layout lang={lang} setLang={setLang}>{children}</Layout>
-      </SignedIn>
-      <SignedOut>
-        <RedirectToSignIn />
-      </SignedOut>
-    </>
-  );
-};
-
 const AppContent: React.FC = () => {
   const [lang, setLang] = useState<Language>('en');
-  const { user, isLoaded } = useUser();
 
   useEffect(() => {
     // Handle RTL
@@ -52,35 +30,23 @@ const AppContent: React.FC = () => {
     } else {
       document.documentElement.dir = 'ltr';
     }
-
-    // Temporarily disabled for React 19 / MessagePort crash debugging
-    // schedulerService.start();
-    // queueService.start();
   }, [lang]);
 
-  // Sync Clerk User to App Service
+  // Production Origin Guard
   useEffect(() => {
-    if (isLoaded) {
-      authService.syncUser(user);
+    const siteUrl = import.meta.env.VITE_SITE_URL;
+    if (siteUrl && window.location.origin !== siteUrl && !window.location.hostname.includes('localhost')) {
+      console.warn(`Origin Mismatch: App is running on ${window.location.origin} instead of ${siteUrl}`);
     }
-  }, [user, isLoaded]);
-
-  if (!isLoaded) {
-    return <div className="flex items-center justify-center min-h-screen text-white">Loading...</div>;
-  }
+  }, []);
 
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
-      <Route
-        path="/login"
-        element={
-          <>
-            <SignedIn><Navigate to="/dashboard" /></SignedIn>
-            <SignedOut><Login lang={lang} setLang={setLang} /></SignedOut>
-          </>
-        }
-      />
+      <Route path="/login" element={<Login lang={lang} setLang={setLang} />} />
+      <Route path="/register" element={<Register lang={lang} setLang={setLang} />} />
+      <Route path="/sign-in" element={<Navigate to="/login" replace />} />
+      <Route path="/sign-up" element={<Navigate to="/register" replace />} />
 
       {/* Public Legal Pages */}
       <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -91,64 +57,78 @@ const AppContent: React.FC = () => {
 
       {/* Protected Routes */}
       <Route path="/dashboard" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <Dashboard lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Dashboard lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/products" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <Products lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Products lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/orders" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <Orders lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Orders lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/inbox" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <Inbox lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Inbox lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/history" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <PublishHistory lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <PublishHistory lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
-
-      {/* Owner Only Routes - Strict Role Check can be added later */}
       <Route path="/connected-accounts" element={
-        <ProtectedRoute lang={lang} setLang={setLang} requiredRole="owner">
-          <ConnectedAccounts lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <ConnectedAccounts lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/team" element={
-        <ProtectedRoute lang={lang} setLang={setLang} requiredRole="owner">
-          <Team lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Team lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/activity" element={
-        <ProtectedRoute lang={lang} setLang={setLang} requiredRole="owner">
-          <Activity lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Activity lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/delivery-settings" element={
-        <ProtectedRoute lang={lang} setLang={setLang} requiredRole="owner">
-          <Settings lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Settings lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
       <Route path="/billing" element={
-        <ProtectedRoute lang={lang} setLang={setLang} requiredRole="owner">
-          <Billing lang={lang} />
+        <ProtectedRoute>
+          <Layout lang={lang} setLang={setLang}>
+            <Billing lang={lang} />
+          </Layout>
         </ProtectedRoute>
       } />
 
-      {/* Placeholder Routes */}
-      <Route path="/analytics" element={
-        <ProtectedRoute lang={lang} setLang={setLang}>
-          <div className="text-white text-center py-20">Analytics Module (Coming Soon)</div>
-        </ProtectedRoute>
-      } />
+      {/* Catch-all Redirect */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
@@ -156,9 +136,11 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <ToastProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <AppContent />
+        </BrowserRouter>
+      </AuthProvider>
     </ToastProvider>
   );
 };

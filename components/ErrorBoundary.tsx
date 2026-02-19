@@ -6,41 +6,71 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
     hasError: boolean;
-    error?: any;
+    errorMessage?: string;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
     state: ErrorBoundaryState = { hasError: false };
 
-    constructor(props: ErrorBoundaryProps) {
-        super(props);
-    }
-
-    static getDerivedStateFromError(error: any) {
-        return { hasError: true, error };
+    static getDerivedStateFromError(error: any): ErrorBoundaryState {
+        return {
+            hasError: true,
+            errorMessage: error?.message || 'Unknown error',
+        };
     }
 
     componentDidCatch(error: any, errorInfo: any) {
-        console.error("Critical Runtime Error:", error, errorInfo);
+        // This surfaces in production logs on Netlify
+        console.error("[ErrorBoundary] Caught runtime error:", error);
+        console.error("[ErrorBoundary] Component stack:", errorInfo?.componentStack);
     }
 
     render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-[#020617] flex items-center justify-center p-6 text-center">
-                    <div className="max-w-md space-y-6">
-                        <h1 className="text-4xl font-bold text-white tracking-tight">Something went wrong</h1>
-                        <p className="text-slate-400 leading-relaxed">
-                            The application encountered an unexpected error. Please try reloading the page.
+                <div style={{
+                    minHeight: '100vh',
+                    backgroundColor: '#020617',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '24px',
+                    textAlign: 'center',
+                    fontFamily: 'Inter, sans-serif',
+                }}>
+                    <div style={{ maxWidth: '480px' }}>
+                        <h1 style={{ color: '#fff', fontSize: '2rem', fontWeight: 700, marginBottom: '12px' }}>
+                            Something went wrong
+                        </h1>
+                        <p style={{ color: '#94a3b8', lineHeight: 1.6, marginBottom: '8px' }}>
+                            The application encountered an unexpected error.
                         </p>
-                        {import.meta.env.MODE === 'development' && (
-                            <div className="p-4 bg-red-900/20 border border-red-500/20 rounded-lg text-red-400 text-xs text-left overflow-auto max-h-40">
-                                {this.state.error?.toString()}
-                            </div>
-                        )}
+                        {/* Show a short hint in all environments to aid debugging */}
+                        <p style={{
+                            color: '#ef4444',
+                            fontSize: '0.75rem',
+                            backgroundColor: 'rgba(239,68,68,0.1)',
+                            border: '1px solid rgba(239,68,68,0.2)',
+                            borderRadius: '8px',
+                            padding: '10px 14px',
+                            marginBottom: '24px',
+                            wordBreak: 'break-word',
+                        }}>
+                            {this.state.errorMessage}
+                        </p>
                         <button
                             onClick={() => window.location.reload()}
-                            className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20"
+                            style={{
+                                background: '#2563eb',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '12px',
+                                padding: '14px 28px',
+                                fontWeight: 700,
+                                fontSize: '1rem',
+                                cursor: 'pointer',
+                                width: '100%',
+                            }}
                         >
                             Reload Application
                         </button>

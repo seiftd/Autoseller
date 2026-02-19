@@ -31,8 +31,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [authLoading, setAuthLoading] = useState(true);
 
     useEffect(() => {
+        // CRITICAL: Guard against auth being null if Firebase failed to initialize
         if (!auth) {
-            console.error("Auth context failed: Firebase Auth is not initialized.");
+            console.error("[AuthContext] Firebase Auth is not initialized. Check env variables.");
             setAuthLoading(false);
             return;
         }
@@ -40,32 +41,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             setCurrentUser(user);
             setAuthLoading(false);
+        }, (error) => {
+            // Handle auth state errors (e.g. network issues) without crashing
+            console.error("[AuthContext] onAuthStateChanged error:", error);
+            setAuthLoading(false);
         });
 
         return unsubscribe;
     }, []);
 
-    const login = (email: string, password: string) => {
-        if (!auth) return Promise.reject("Firebase Auth not initialized");
-        return signInWithEmailAndPassword(auth, email, password).then(() => { });
+    const login = async (email: string, password: string): Promise<void> => {
+        if (!auth) {
+            return Promise.reject(new Error("Firebase Auth is not available. Please check your configuration."));
+        }
+        await signInWithEmailAndPassword(auth, email, password);
     };
 
-    const register = (email: string, password: string) => {
-        if (!auth) return Promise.reject("Firebase Auth not initialized");
-        return createUserWithEmailAndPassword(auth, email, password).then(() => { });
+    const register = async (email: string, password: string): Promise<void> => {
+        if (!auth) {
+            return Promise.reject(new Error("Firebase Auth is not available. Please check your configuration."));
+        }
+        await createUserWithEmailAndPassword(auth, email, password);
     };
 
-    const logout = () => {
-        if (!auth) return Promise.reject("Firebase Auth not initialized");
-        return signOut(auth);
+    const logout = async (): Promise<void> => {
+        if (!auth) {
+            return Promise.reject(new Error("Firebase Auth is not available."));
+        }
+        await signOut(auth);
     };
 
-    const value = {
+    const value: AuthContextType = {
         currentUser,
         authLoading,
         login,
         register,
-        logout
+        logout,
     };
 
     return (

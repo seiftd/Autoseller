@@ -13,6 +13,7 @@ interface AuthContextType {
     authLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string) => Promise<void>;
+    googleLogin: () => Promise<void>;
     logout: () => Promise<void>;
 }
 
@@ -64,6 +65,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         await createUserWithEmailAndPassword(auth, email, password);
     };
 
+    const googleLogin = async (): Promise<void> => {
+        if (!auth) {
+            return Promise.reject(new Error("Firebase Auth is not available. Please check your configuration."));
+        }
+        const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+    };
+
     const logout = async (): Promise<void> => {
         if (!auth) {
             return Promise.reject(new Error("Firebase Auth is not available."));
@@ -76,6 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authLoading,
         login,
         register,
+        googleLogin,
         logout,
     };
 

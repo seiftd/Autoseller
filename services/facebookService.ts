@@ -43,13 +43,11 @@ export const facebookService = {
     if (typeof window === 'undefined') return;
 
     const appId = import.meta.env.VITE_FB_APP_ID;
-    const redirectUri = import.meta.env.VITE_FB_REDIRECT_URI;
+    const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+    const redirectUri = `${siteUrl}/.netlify/functions/fb-oauth-callback`;
 
     if (!appId) {
-      throw new Error('VITE_FB_APP_ID is not configured. Add it to your .env.local file.');
-    }
-    if (!redirectUri) {
-      throw new Error('VITE_FB_REDIRECT_URI is not configured. Add it to your .env.local file.');
+      throw new Error('VITE_FB_APP_ID is not configured.');
     }
 
     const oauthUrl = new URL('https://www.facebook.com/dialog/oauth');

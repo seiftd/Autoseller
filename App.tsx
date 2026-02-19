@@ -32,14 +32,6 @@ const AppContent: React.FC = () => {
     }
   }, [lang]);
 
-  // Production Origin Guard
-  useEffect(() => {
-    const siteUrl = import.meta.env.VITE_SITE_URL;
-    if (siteUrl && window.location.origin !== siteUrl && !window.location.hostname.includes('localhost')) {
-      console.warn(`Origin Mismatch: App is running on ${window.location.origin} instead of ${siteUrl}`);
-    }
-  }, []);
-
   return (
     <Routes>
       <Route path="/" element={<Landing />} />

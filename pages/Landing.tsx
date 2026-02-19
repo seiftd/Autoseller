@@ -457,14 +457,16 @@ export const Landing: React.FC = () => {
                 <li><Link to="/privacy" className="text-slate-400 hover:text-blue-400 transition-colors">Privacy Policy</Link></li>
                 <li><Link to="/terms" className="text-slate-400 hover:text-blue-400 transition-colors">Terms of Service</Link></li>
                 <li><Link to="/data-deletion" className="text-slate-400 hover:text-blue-400 transition-colors">Data Deletion</Link></li>
+                <li><Link to="/cookies" className="text-slate-400 hover:text-blue-400 transition-colors">Cookie Policy</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-white font-bold mb-6">Compliance</h4>
               <ul className="space-y-4 text-sm">
-                <li><Link to="/facebook-permissions" className="text-slate-400 hover:text-blue-400 transition-colors">Meta Permissions</Link></li>
-                <li><Link to="/security" className="text-slate-400 hover:text-blue-400 transition-colors">Security Architecture</Link></li>
-                <li><a href="mailto:support@replygenie.app" className="text-slate-400 hover:text-blue-400 transition-colors">Contact Support</a></li>
+                <li><Link to="/meta-permissions" className="text-slate-400 hover:text-blue-400 transition-colors">Meta Permissions</Link></li>
+                <li><Link to="/security" className="text-slate-400 hover:text-blue-400 transition-colors">Security & Encryption</Link></li>
+                <li><Link to="/gdpr" className="text-slate-400 hover:text-blue-400 transition-colors">GDPR & Rights</Link></li>
+                <li><Link to="/contact" className="text-slate-400 hover:text-blue-400 transition-colors">Contact & Support</Link></li>
               </ul>
             </div>
           </div>

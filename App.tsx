@@ -26,8 +26,11 @@ const Legal = lazy(() => import('./pages/LegalPages'));
 const PrivacyPolicy = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.PrivacyPolicy })));
 const TermsOfService = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.TermsOfService })));
 const DataDeletion = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.DataDeletion })));
-const FacebookPermissions = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.FacebookPermissions })));
+const MetaPermissions = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.MetaPermissions })));
 const SecurityPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.SecurityPage })));
+const ContactPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.ContactPage })));
+const CookiesPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.CookiesPage })));
+const GDPRPage = lazy(() => import('./pages/LegalPages').then(m => ({ default: m.GDPRPage })));
 
 const LoadingFallback = () => (
   <div className="min-h-screen bg-[#020617] flex items-center justify-center">
@@ -62,8 +65,12 @@ const AppContent: React.FC = () => {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/data-deletion" element={<DataDeletion />} />
-        <Route path="/facebook-permissions" element={<FacebookPermissions />} />
+        <Route path="/meta-permissions" element={<MetaPermissions />} />
+        <Route path="/facebook-permissions" element={<MetaPermissions />} />
         <Route path="/security" element={<SecurityPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/cookies" element={<CookiesPage />} />
+        <Route path="/gdpr" element={<GDPRPage />} />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

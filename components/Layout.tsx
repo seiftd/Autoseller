@@ -120,15 +120,21 @@ export const Layout: React.FC<Props> = ({ children, lang, setLang }) => {
 
         {/* Dashboard Footer for Legal Links */}
         <div className="mt-12 pt-6 border-t border-slate-800 flex flex-wrap gap-4 justify-center md:justify-end text-[10px] text-slate-500">
-          <Link to="/privacy" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Privacy Policy</Link>
+          <Link to="/privacy" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Privacy</Link>
           <span className="opacity-20">•</span>
-          <Link to="/terms" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Terms of Service</Link>
+          <Link to="/terms" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Terms</Link>
           <span className="opacity-20">•</span>
-          <Link to="/data-deletion" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Data Deletion</Link>
+          <Link to="/data-deletion" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Deletion</Link>
           <span className="opacity-20">•</span>
-          <Link to="/facebook-permissions" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Permissions</Link>
+          <Link to="/cookies" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Cookies</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/meta-permissions" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Meta</Link>
           <span className="opacity-20">•</span>
           <Link to="/security" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Security</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/gdpr" className="hover:text-blue-400 transition-colors uppercase tracking-wider">GDPR</Link>
+          <span className="opacity-20">•</span>
+          <Link to="/contact" className="hover:text-blue-400 transition-colors uppercase tracking-wider">Contact</Link>
         </div>
       </main>
     </div>
